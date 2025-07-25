@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">IncidentsCompose</string>
+    <string name="app_name">Incidents</string>
+    <string name="incident_details">Incident Details</string>
+    <string name="category">Category</string>
+    <string name="description">Description</string>
+    <string name="status">Status</string>
+    <string name="priority">Priority</string>
+    <string name="add_notes">Add notes...</string>
+    <string name="notes">Notes</string>
 </resources>

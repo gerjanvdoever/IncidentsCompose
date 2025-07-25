@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Incidents</string>
+    <string name="incident_details">Incidentendetails</string>
+    <string name="category">Categorie</string>
+    <string name="description">Omschrijving</string>
+    <string name="status">Status</string>
+    <string name="priority">Prioriteit</string>
+    <string name="add_notes">Notities toevoegen...</string>
+    <string name="notes">Notities</string>
+</resources>
