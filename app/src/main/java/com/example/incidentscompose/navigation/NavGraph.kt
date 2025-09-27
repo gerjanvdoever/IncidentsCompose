@@ -6,20 +6,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.incidentscompose.ui.screens.auth.LoginScreen
 
-sealed class Screen(val route: String) {
-    data object Login : Screen("login")
-}
-
 @Composable
 fun NavGraph(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route
+        startDestination = Destinations.Login.route
     ) {
-        composable(Screen.Login.route) {
+        composable(Destinations.Login.route) {
             LoginScreen(
-                isBusy = false,
-                validationError = null
             )
         }
     }
