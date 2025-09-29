@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.incidentscompose.ui.screens.auth.LoginScreen
+import com.example.incidentscompose.ui.screens.incidents.MyIncidentListScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -13,8 +14,11 @@ fun NavGraph(navController: NavHostController) {
         startDestination = Destinations.Login.route
     ) {
         composable(Destinations.Login.route) {
-            LoginScreen(
+            LoginScreen(navController
             )
+        }
+        composable(Destinations.MyIncidentList.route) {
+            MyIncidentListScreen()
         }
     }
 }
