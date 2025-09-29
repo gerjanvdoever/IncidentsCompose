@@ -18,7 +18,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
         composable(Destinations.MyIncidentList.route) {
-            MyIncidentListScreen()
+            MyIncidentListScreen(navController)
         }
     }
 }
