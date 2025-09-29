@@ -165,7 +165,7 @@ fun LoginScreen(
                         text = "Don't have an account? Register here",
                         fontSize = 14.sp,
                         color = Color(0xFF0D47A1),
-                        modifier = Modifier.clickable { /* TODO: navigate to register */ }
+                        modifier = Modifier.clickable { navController.navigate(Destinations.Register.route) }
                     )
                 }
             }

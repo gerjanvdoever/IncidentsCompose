@@ -3,10 +3,13 @@ package com.example.incidentscompose.di
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.incidentscompose.data.api.AuthApi
+import com.example.incidentscompose.data.api.UserApi
 import com.example.incidentscompose.data.repository.AuthRepository
+import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.viewmodel.LoginViewModel
 import com.example.incidentscompose.viewmodel.MyIncidentListViewModel
+import com.example.incidentscompose.viewmodel.RegisterViewModel
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -32,10 +35,13 @@ val appModule = module {
         }
     }
 
-    single { AuthApi(get()) }  // inject HttpClient
-    single { AuthRepository(get(), get()) } // TokenPreferences + AuthApi
+    single { AuthApi(get()) }
+    single { UserApi(get()) }
+    single { AuthRepository(get(), get()) }
+    single { UserRepository(get())}
 
     viewModel { LoginViewModel(get()) }
     viewModel { MyIncidentListViewModel(get())}
+    viewModel { RegisterViewModel(get())}
 
 }
