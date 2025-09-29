@@ -1,4 +1,4 @@
-# Incidents – Cross-Platform Incident Reporting
+# Incidents – Communal Incident Reporting
 
 Incidents is a modern application designed to simplify public incident reporting and management. Originally developed as a graduation project, it connects citizens with municipal services through a responsive and secure platform.  
 This version is implemented using Kotlin with Jetpack Compose for the mobile client, integrating with a shared backend API. The focus is on a clean, maintainable architecture and smooth user experience across devices.  
