@@ -1,5 +1,6 @@
 package com.example.incidentscompose.ui.screens.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,10 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.incidentscompose.R
 import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.viewmodel.LoginState
 import com.example.incidentscompose.viewmodel.LoginViewModel
@@ -31,12 +35,10 @@ fun LoginScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // Auto-login check
     LaunchedEffect(Unit) {
         viewModel.checkAutoLogin()
     }
 
-    // Handle auto-login result
     LaunchedEffect(autoLoginState) {
         when (autoLoginState) {
             is com.example.incidentscompose.viewmodel.AutoLoginState.TokenFound -> {
@@ -44,13 +46,10 @@ fun LoginScreen(
                     popUpTo("login") { inclusive = true }
                 }
             }
-            else -> {
-                // Do nothing, stay on login screen
-            }
+            else -> {}
         }
     }
 
-    // Handle login result
     LaunchedEffect(loginState) {
         when (loginState) {
             is LoginState.Success -> {
@@ -58,9 +57,7 @@ fun LoginScreen(
                     popUpTo("login") { inclusive = true }
                 }
             }
-            else -> {
-                // Other states handled in the UI
-            }
+            else -> {}
         }
     }
 
@@ -78,6 +75,15 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "App Logo",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .height(200.dp)
+                    .padding(vertical = 16.dp)
+            )
+
             Surface(
                 modifier = Modifier.width(360.dp),
                 shape = RoundedCornerShape(20.dp),
@@ -88,19 +94,19 @@ fun LoginScreen(
                     modifier = Modifier.padding(30.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-
                     TextField(
                         value = username,
                         onValueChange = {
                             username = it
-                            // Clear error when user starts typing
                             if (loginState is LoginState.Error) {
                                 viewModel.clearLoginState()
                             }
                         },
                         placeholder = { Text("Username") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
                         isError = loginState is LoginState.Error
                     )
 
@@ -108,7 +114,6 @@ fun LoginScreen(
                         value = password,
                         onValueChange = {
                             password = it
-                            // Clear error when user starts typing
                             if (loginState is LoginState.Error) {
                                 viewModel.clearLoginState()
                             }
@@ -116,21 +121,18 @@ fun LoginScreen(
                         placeholder = { Text("Password") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
                         isError = loginState is LoginState.Error
                     )
 
-                    when (loginState) {
-                        is LoginState.Error -> {
-                            Text(
-                                text = (loginState as LoginState.Error).message,
-                                color = Color.Red,
-                                fontSize = 14.sp
-                            )
-                        }
-                        else -> {
-                            // Show nothing for other states
-                        }
+                    if (loginState is LoginState.Error) {
+                        Text(
+                            text = (loginState as LoginState.Error).message,
+                            color = Color.Red,
+                            fontSize = 14.sp
+                        )
                     }
 
                     Button(
@@ -165,13 +167,14 @@ fun LoginScreen(
                         text = "Don't have an account? Register here",
                         fontSize = 14.sp,
                         color = Color(0xFF0D47A1),
-                        modifier = Modifier.clickable { navController.navigate(Destinations.Register.route) }
+                        modifier = Modifier.clickable {
+                            navController.navigate(Destinations.Register.route)
+                        }
                     )
                 }
             }
         }
 
-        // Loading overlay for auto-login check
         if (autoLoginState is com.example.incidentscompose.viewmodel.AutoLoginState.Checking) {
             Box(
                 modifier = Modifier
