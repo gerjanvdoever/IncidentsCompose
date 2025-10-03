@@ -19,7 +19,7 @@ class TokenPreferences(private val context: Context) {
         }
     }
 
-    fun getTokenFlow() = context.dataStore.data.map { prefs ->
+    private fun getTokenFlow() = context.dataStore.data.map { prefs ->
         prefs[TOKEN_KEY]
     }
 

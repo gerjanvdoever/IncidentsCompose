@@ -1,5 +1,6 @@
 package com.example.incidentscompose.data.repository
 
+import androidx.navigation.NavController
 import com.example.incidentscompose.data.api.AuthApi
 import com.example.incidentscompose.data.store.TokenPreferences
 
@@ -21,5 +22,6 @@ class AuthRepository(
 
     suspend fun logout() {
         tokenPreferences.clearToken()
+
     }
 }
