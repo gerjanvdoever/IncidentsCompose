@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.MyIncidentListViewModel
 import org.koin.compose.koinInject
 
@@ -42,7 +41,6 @@ fun MyIncidentListScreen(
     val logoutEvent by viewModel.logoutEvent.collectAsState()
     var isDropdownVisible by remember { mutableStateOf(false) }
 
-    // Navigate on logout
     LaunchedEffect(logoutEvent) {
         if (logoutEvent) {
             navController.navigate("login") {
@@ -55,14 +53,12 @@ fun MyIncidentListScreen(
     val totalIncidents = incidents.size
     val activeIncidents = incidents.count { it.status.lowercase() == "active" || it.status.lowercase() == "assigned" }
 
-
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFF8F9FA))
         ) {
-            // Gradient Header
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -80,7 +76,6 @@ fun MyIncidentListScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Avatar
                     Box(
                         modifier = Modifier
                             .size(60.dp)
@@ -101,7 +96,6 @@ fun MyIncidentListScreen(
                         )
                     }
 
-                    // User Info
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -120,7 +114,6 @@ fun MyIncidentListScreen(
                         )
                     }
 
-                    // Settings Button
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -201,7 +194,6 @@ fun MyIncidentListScreen(
             }
         }
 
-        // Floating Action Button
         FloatingActionButton(
             onClick = { /* Navigate to create incident */ },
             modifier = Modifier
@@ -215,6 +207,14 @@ fun MyIncidentListScreen(
                 contentDescription = "Create Incident",
                 tint = Color.White,
                 modifier = Modifier.size(28.dp)
+            )
+        }
+
+        if (isDropdownVisible) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { isDropdownVisible = false }
             )
         }
 
@@ -257,16 +257,7 @@ fun MyIncidentListScreen(
             }
         }
     }
-
-        // Dismiss dropdown overlay
-        if (isDropdownVisible) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { isDropdownVisible = false }
-            )
-        }
-    }
+}
 
 @Composable
 private fun StatCard(
@@ -342,12 +333,10 @@ private fun IncidentCard(
 
             Spacer(modifier = Modifier.width(15.dp))
 
-            // Incident Info
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Category as the main title
                 Text(
                     text = incident.category,
                     fontSize = 16.sp,
@@ -355,7 +344,6 @@ private fun IncidentCard(
                     color = Color.Black
                 )
 
-                // Description
                 Text(
                     text = shortDescription,
                     fontSize = 14.sp,
@@ -369,7 +357,6 @@ private fun IncidentCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Status badge
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = getStatusColor(incident.status).copy(alpha = 0.1f)
@@ -383,7 +370,6 @@ private fun IncidentCard(
                         )
                     }
 
-                    // Priority and Date
                     Column(
                         horizontalAlignment = Alignment.End
                     ) {
