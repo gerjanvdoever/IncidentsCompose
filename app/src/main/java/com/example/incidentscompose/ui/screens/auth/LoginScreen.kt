@@ -13,13 +13,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.incidentscompose.R
 import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.ui.components.IncidentsTextField
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.AutoLoginState
 import com.example.incidentscompose.viewmodel.LoginState
@@ -38,7 +38,6 @@ fun LoginScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // Track if we're currently in login process
     val isLoggingIn = remember { derivedStateOf {
         loginState is LoginState.Loading || (isBusy && loginState !is LoginState.Error)
     } }
@@ -101,7 +100,7 @@ fun LoginScreen(
                 Column(
                     modifier = Modifier.padding(30.dp)
                 ) {
-                    TextField(
+                    IncidentsTextField(
                         value = username,
                         onValueChange = {
                             username = it
@@ -109,17 +108,13 @@ fun LoginScreen(
                                 viewModel.clearLoginState()
                             }
                         },
-                        placeholder = { Text("Username") },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
+                        placeholder = "Username",
                         isError = loginState is LoginState.Error
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    TextField(
+                    IncidentsTextField(
                         value = password,
                         onValueChange = {
                             password = it
@@ -127,12 +122,8 @@ fun LoginScreen(
                                 viewModel.clearLoginState()
                             }
                         },
-                        placeholder = { Text("Password") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
+                        placeholder = "Password",
+                        isPassword = true,
                         isError = loginState is LoginState.Error
                     )
 
