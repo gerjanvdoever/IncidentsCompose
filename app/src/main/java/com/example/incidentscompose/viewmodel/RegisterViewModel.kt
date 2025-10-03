@@ -1,25 +1,25 @@
 package com.example.incidentscompose.viewmodel
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.incidentscompose.data.repository.UserRepository
+import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 class RegisterViewModel(
     private val userRepository: UserRepository
-) : ViewModel() {
-
-    private val _isBusy = MutableStateFlow(false)
-    val isBusy: StateFlow<Boolean> = _isBusy.asStateFlow()
+) : BaseViewModel() {
 
     private val _registerState = MutableStateFlow<RegisterState>(RegisterState.Idle)
     val registerState: StateFlow<RegisterState> = _registerState.asStateFlow()
 
     fun register(username: String, password: String, email: String, confirmPassword: String) {
-        // Validation
+
         if (username.isBlank() || password.isBlank() || email.isBlank() || confirmPassword.isBlank()) {
             _registerState.value = RegisterState.Error("Please fill in all fields")
             return
@@ -40,22 +40,28 @@ class RegisterViewModel(
             return
         }
 
-        _isBusy.value = true
         _registerState.value = RegisterState.Loading
 
         viewModelScope.launch {
             try {
-                // null for now on avatar, implement it later
-                val success = userRepository.register(username, password, email, null)
+                val success = withLoading {
+                    userRepository.register(username, password, email, null)
+                }
                 _registerState.value = if (success) {
                     RegisterState.Success
                 } else {
-                    RegisterState.Error("Registration failed. Username or email may already exist.")
+                    RegisterState.Error("Registration failed.")
                 }
             } catch (e: Exception) {
-                _registerState.value = RegisterState.Error("Network error: ${e.message}")
-            } finally {
-                _isBusy.value = false
+                val errorMessage = when (e) {
+                    is ConnectException, is SocketTimeoutException, is UnknownHostException -> {
+                        "Network error: Unable to connect to server."
+                    }
+                    else -> {
+                        "Network error: ${e.message ?: "Please try again later"}"
+                    }
+                }
+                _registerState.value = RegisterState.Error(errorMessage)
             }
         }
     }

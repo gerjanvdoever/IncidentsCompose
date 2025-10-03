@@ -14,11 +14,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.incidentscompose.R
 import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.ui.components.LoadingOverlay
+import com.example.incidentscompose.viewmodel.AutoLoginState
 import com.example.incidentscompose.viewmodel.LoginState
 import com.example.incidentscompose.viewmodel.LoginViewModel
 import org.koin.compose.koinInject
@@ -35,13 +38,18 @@ fun LoginScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
+    // Track if we're currently in login process
+    val isLoggingIn = remember { derivedStateOf {
+        loginState is LoginState.Loading || (isBusy && loginState !is LoginState.Error)
+    } }
+
     LaunchedEffect(Unit) {
         viewModel.checkAutoLogin()
     }
 
     LaunchedEffect(autoLoginState) {
         when (autoLoginState) {
-            is com.example.incidentscompose.viewmodel.AutoLoginState.TokenFound -> {
+            is AutoLoginState.TokenFound -> {
                 navController.navigate(Destinations.MyIncidentList.route) {
                     popUpTo("login") { inclusive = true }
                 }
@@ -91,8 +99,7 @@ fun LoginScreen(
                 tonalElevation = 8.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(30.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    modifier = Modifier.padding(30.dp)
                 ) {
                     TextField(
                         value = username,
@@ -109,6 +116,8 @@ fun LoginScreen(
                             .height(50.dp),
                         isError = loginState is LoginState.Error
                     )
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     TextField(
                         value = password,
@@ -127,12 +136,17 @@ fun LoginScreen(
                         isError = loginState is LoginState.Error
                     )
 
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     if (loginState is LoginState.Error) {
                         Text(
                             text = (loginState as LoginState.Error).message,
                             color = Color.Red,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
+                        Spacer(modifier = Modifier.height(20.dp))
                     }
 
                     Button(
@@ -141,53 +155,43 @@ fun LoginScreen(
                         },
                         shape = RoundedCornerShape(25.dp),
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isBusy && username.isNotBlank() && password.isNotBlank()
+                        enabled = !isLoggingIn.value && username.isNotBlank() && password.isNotBlank()
                     ) {
-                        if (isBusy) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Login")
-                        }
+                        Text("Login")
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Button(
                         onClick = { /* TODO: anonymous report */ },
                         shape = RoundedCornerShape(25.dp),
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isBusy
+                        enabled = !isLoggingIn.value
                     ) {
                         Text("Report anonymously")
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
                         text = "Don't have an account? Register here",
                         fontSize = 14.sp,
                         color = Color(0xFF0D47A1),
-                        modifier = Modifier.clickable {
-                            navController.navigate(Destinations.Register.route)
-                        }
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (!isLoggingIn.value) {
+                                    navController.navigate(Destinations.Register.route)
+                                }
+                            }
                     )
                 }
             }
         }
 
-        if (autoLoginState is com.example.incidentscompose.viewmodel.AutoLoginState.Checking) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0x88000000)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = Color.White)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Checking saved login...", color = Color.White)
-                }
-            }
-        }
+        LoadingOverlay(
+            isLoading = autoLoginState is AutoLoginState.Checking || isLoggingIn.value
+        )
     }
 }

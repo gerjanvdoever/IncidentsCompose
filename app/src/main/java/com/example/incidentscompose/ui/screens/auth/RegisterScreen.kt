@@ -13,10 +13,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.RegisterState
 import com.example.incidentscompose.viewmodel.RegisterViewModel
 import org.koin.compose.koinInject
@@ -74,21 +76,22 @@ fun RegisterScreen(
                 tonalElevation = 8.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(30.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    modifier = Modifier.padding(30.dp)
                 ) {
                     Text(
                         text = "Create Account",
                         fontSize = 24.sp,
                         color = Color(0xFF0D47A1),
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     TextField(
                         value = username,
                         onValueChange = {
                             username = it
-                            // Clear error when user starts typing
                             if (registerState is RegisterState.Error) {
                                 viewModel.clearRegisterState()
                             }
@@ -99,11 +102,12 @@ fun RegisterScreen(
                         isError = registerState is RegisterState.Error
                     )
 
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     TextField(
                         value = email,
                         onValueChange = {
                             email = it
-                            // Clear error when user starts typing
                             if (registerState is RegisterState.Error) {
                                 viewModel.clearRegisterState()
                             }
@@ -114,11 +118,12 @@ fun RegisterScreen(
                         isError = registerState is RegisterState.Error
                     )
 
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     TextField(
                         value = password,
                         onValueChange = {
                             password = it
-                            // Clear error when user starts typing
                             if (registerState is RegisterState.Error) {
                                 viewModel.clearRegisterState()
                             }
@@ -129,6 +134,8 @@ fun RegisterScreen(
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         isError = registerState is RegisterState.Error
                     )
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     TextField(
                         value = confirmPassword,
@@ -145,13 +152,18 @@ fun RegisterScreen(
                         isError = registerState is RegisterState.Error
                     )
 
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     when (registerState) {
                         is RegisterState.Error -> {
                             Text(
                                 text = (registerState as RegisterState.Error).message,
                                 color = Color.Red,
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
                             )
+                            Spacer(modifier = Modifier.height(20.dp))
                         }
                         else -> {
                             // Show nothing for other states
@@ -167,29 +179,28 @@ fun RegisterScreen(
                         enabled = !isBusy && username.isNotBlank() && password.isNotBlank() &&
                                 email.isNotBlank() && confirmPassword.isNotBlank()
                     ) {
-                        if (isBusy) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Register")
-                        }
+                        Text("Register")
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
                         text = "Already have an account? Login here",
                         fontSize = 14.sp,
                         color = Color(0xFF0D47A1),
-                        modifier = Modifier.clickable {
-                            navController.navigate(Destinations.Login.route) {
-                                popUpTo("register") { inclusive = true }
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                navController.navigate(Destinations.Login.route) {
+                                    popUpTo("register") { inclusive = true }
+                                }
                             }
-                        }
                     )
                 }
             }
         }
+
+        LoadingOverlay(isLoading = isBusy)
     }
 }

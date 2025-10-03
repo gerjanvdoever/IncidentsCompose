@@ -1,19 +1,19 @@
 package com.example.incidentscompose.viewmodel
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.incidentscompose.data.repository.AuthRepository
+import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 class LoginViewModel(
     private val repository: AuthRepository
-) : ViewModel() {
-
-    private val _isBusy = MutableStateFlow(false)
-    val isBusy: StateFlow<Boolean> = _isBusy.asStateFlow()
+) : BaseViewModel() {
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
@@ -27,21 +27,28 @@ class LoginViewModel(
             return
         }
 
-        _isBusy.value = true
         _loginState.value = LoginState.Loading
 
         viewModelScope.launch {
             try {
-                val success = repository.login(username, password)
+                val success = withLoading {
+                    repository.login(username, password)
+                }
                 _loginState.value = if (success) {
                     LoginState.Success
                 } else {
                     LoginState.Error("Invalid username or password")
                 }
             } catch (e: Exception) {
-                _loginState.value = LoginState.Error("Network error: ${e.message}")
-            } finally {
-                _isBusy.value = false
+                val errorMessage = when (e) {
+                    is ConnectException, is SocketTimeoutException, is UnknownHostException -> {
+                        "Network error: Unable to connect to server."
+                    }
+                    else -> {
+                        "Network error: ${e.message ?: "Please try again later"}"
+                    }
+                }
+                _loginState.value = LoginState.Error(errorMessage)
             }
         }
     }
@@ -49,7 +56,9 @@ class LoginViewModel(
     fun checkAutoLogin() {
         viewModelScope.launch {
             try {
-                val token = repository.getSavedToken()
+                val token = withLoading {
+                    repository.getSavedToken()
+                }
                 _autoLoginState.value = if (!token.isNullOrEmpty()) {
                     AutoLoginState.TokenFound
                 } else {
