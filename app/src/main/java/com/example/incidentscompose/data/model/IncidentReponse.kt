@@ -6,13 +6,13 @@ import kotlinx.serialization.Serializable
 data class IncidentResponse(
     val id: Long,
     val reportedBy: Long?,
-    val category: String,        // This will be our main identifier
+    val category: String,
     val description: String,
     val latitude: Double,
     val longitude: Double,
     val images: List<String>,
-    val priority: String,        // Keep as String for now
-    val status: String,          // Keep as String for now
+    val priority: String,
+    val status: String,
     val createdAt: String,
     val updatedAt: String,
     val completedAt: String?,

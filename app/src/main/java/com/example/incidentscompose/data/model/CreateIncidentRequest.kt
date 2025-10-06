@@ -1,4 +1,12 @@
 package com.example.incidentscompose.data.model
 
-class CreateIncidentRequest {
-}
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class CreateIncidentRequest(
+    val category: String,
+    val description: String,
+    val latitude: Double,
+    val longitude: Double,
+    val priority: String = "LOW"
+)

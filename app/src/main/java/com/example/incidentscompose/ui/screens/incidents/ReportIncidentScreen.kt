@@ -1,5 +1,6 @@
 package com.example.incidentscompose.ui.screens.incidents
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,12 +28,12 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ReportIncidentScreen(
     navController: NavController,
-    viewModel: ReportIncidentViewModel = koinInject()
+    viewModel: ReportIncidentViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -75,29 +76,24 @@ fun ReportIncidentScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Warning Banner
             WarningBanner()
 
-            // Category Selection
             CategorySelectionCard(
                 selectedCategory = uiState.selectedCategory,
                 onCategorySelected = { viewModel.updateCategory(it) }
             )
 
-            // Description Input
             DescriptionInputCard(
                 description = uiState.description,
                 onDescriptionChange = { viewModel.updateDescription(it) }
             )
 
-            // Photo Upload
             PhotoUploadCard(
                 photos = uiState.photos,
                 onAddPhoto = { viewModel.addPhoto() },
                 onRemovePhoto = { viewModel.removePhoto(it) }
             )
 
-            // Map Location
             MapLocationCard(
                 onUseCurrentLocation = { viewModel.useCurrentLocation() }
             )
@@ -117,7 +113,7 @@ fun WarningBanner() {
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFFFFF8DC)
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B)),
+        border = BorderStroke(1.dp, Color(0xFFF59E0B)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -157,7 +153,7 @@ fun CategorySelectionCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD0D7DE)),
+        border = BorderStroke(1.dp, Color(0xFFD0D7DE)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -170,30 +166,28 @@ fun CategorySelectionCard(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                IncidentCategory.entries.forEachIndexed { index, category ->
-                    SegmentedButton(
-                        selected = selectedCategory == category,
+                IncidentCategory.entries.forEach { category ->
+                    val isSelected = category == selectedCategory
+                    FilterChip(
+                        selected = isSelected,
                         onClick = { onCategorySelected(category) },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = IncidentCategory.entries.size
-                        ),
-                        icon = {}
-                    ) {
-                        Text(
-                            text = category.name.lowercase().replaceFirstChar { it.uppercase() },
-                            fontSize = 13.sp,
-                            fontWeight = if (selectedCategory == category) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                    }
+                        label = {
+                            Text(
+                                text = category.name.lowercase()
+                                    .replaceFirstChar { it.uppercase() },
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    )
                 }
             }
 
-            // Category description
             Text(
                 text = when (selectedCategory) {
                     IncidentCategory.CRIME -> "Illegal activities and safety threats"
@@ -209,6 +203,7 @@ fun CategorySelectionCard(
     }
 }
 
+
 @Composable
 fun DescriptionInputCard(
     description: String,
@@ -222,7 +217,7 @@ fun DescriptionInputCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD0D7DE)),
+        border = BorderStroke(1.dp, Color(0xFFD0D7DE)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -270,7 +265,7 @@ fun PhotoUploadCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD0D7DE)),
+        border = BorderStroke(1.dp, Color(0xFFD0D7DE)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -387,7 +382,7 @@ fun MapLocationCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD0D7DE)),
+        border = BorderStroke(1.dp, Color(0xFFD0D7DE)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -434,7 +429,7 @@ fun MapLocationCard(
                     containerColor = Color(0xFFDDF4FF),
                     contentColor = Color(0xFF0969DA)
                 ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF54AEFF)),
+                border = BorderStroke(1.dp, Color(0xFF54AEFF)),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
             ) {
                 Icon(

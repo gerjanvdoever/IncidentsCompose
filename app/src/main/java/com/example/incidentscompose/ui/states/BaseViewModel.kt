@@ -9,7 +9,7 @@ abstract class BaseViewModel : ViewModel() {
     private val _isBusy = MutableStateFlow(false)
     val isBusy: StateFlow<Boolean> = _isBusy.asStateFlow()
 
-    protected fun setBusy(busy: Boolean) {
+    private fun setBusy(busy: Boolean) {
         _isBusy.value = busy
     }
 

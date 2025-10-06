@@ -1,8 +1,8 @@
 package com.example.incidentscompose.viewmodel
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.incidentscompose.data.model.IncidentCategory
+import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +19,7 @@ data class ReportIncidentUiState(
     val errorMessage: String? = null
 )
 
-class ReportIncidentViewModel : ViewModel() {
+class ReportIncidentViewModel : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(ReportIncidentUiState())
     val uiState: StateFlow<ReportIncidentUiState> = _uiState.asStateFlow()
@@ -54,7 +54,7 @@ class ReportIncidentViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
-                    latitude = 51.9851,  // Example coordinates
+                    latitude = 51.9851,
                     longitude = 5.5338
                 )
             }
@@ -79,19 +79,7 @@ class ReportIncidentViewModel : ViewModel() {
 
             try {
                 // TODO: Implement actual API call
-                // Example:
-                // val request = IncidentReportRequest(
-                //     category = state.selectedCategory.name,
-                //     description = state.description,
-                //     latitude = state.latitude,
-                //     longitude = state.longitude
-                // )
-                // repository.submitIncident(request)
 
-                // Simulate network delay
-                kotlinx.coroutines.delay(1500)
-
-                // Reset form on success
                 _uiState.update {
                     ReportIncidentUiState(
                         selectedCategory = IncidentCategory.COMMUNAL
