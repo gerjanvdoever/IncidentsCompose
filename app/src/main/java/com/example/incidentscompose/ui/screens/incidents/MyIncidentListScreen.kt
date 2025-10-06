@@ -28,13 +28,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.incidentscompose.viewmodel.MyIncidentListViewModel
+import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.viewmodel.MyIncidentViewModel
 import org.koin.compose.koinInject
 
 @Composable
 fun MyIncidentListScreen(
     navController: NavController,
-    viewModel: MyIncidentListViewModel = koinInject()
+    viewModel: MyIncidentViewModel = koinInject()
 ) {
     val user by viewModel.user.collectAsState()
     val incidents by viewModel.incidents.collectAsState()
@@ -43,9 +44,10 @@ fun MyIncidentListScreen(
 
     LaunchedEffect(logoutEvent) {
         if (logoutEvent) {
-            navController.navigate("login") {
-                popUpTo("myIncidentList") { inclusive = true }
+            navController.navigate(Destinations.Login.route) {
+                popUpTo(Destinations.MyIncidentList.route) { inclusive = true }
             }
+            viewModel.resetLogoutEvent()
         }
     }
 
@@ -195,7 +197,7 @@ fun MyIncidentListScreen(
         }
 
         FloatingActionButton(
-            onClick = { /* Navigate to create incident */ },
+            onClick = { navController.navigate(Destinations.ReportIncident.route) },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(25.dp),
@@ -323,7 +325,6 @@ private fun IncidentCard(
                 .padding(20.dp, 15.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Priority Indicator (using priority instead of status for the dot)
             Box(
                 modifier = Modifier
                     .size(12.dp)

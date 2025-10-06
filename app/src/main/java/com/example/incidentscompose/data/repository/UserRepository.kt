@@ -14,8 +14,4 @@ class UserRepository(
     suspend fun getCurrentUser(): Result<UserResponse> {
         return userApi.getCurrentUser()
     }
-
-    suspend fun getUserIncidents(userId: String): Result<List<IncidentResponse>> {
-        return userApi.getUserIncidents(userId)
-    }
 }

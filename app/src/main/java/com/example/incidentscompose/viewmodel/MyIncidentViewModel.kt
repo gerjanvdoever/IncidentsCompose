@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class MyIncidentListViewModel(
+class MyIncidentViewModel(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val incidentRepository: IncidentRepository
@@ -24,7 +24,6 @@ class MyIncidentListViewModel(
     private val _incidents = MutableStateFlow<List<IncidentResponse>>(emptyList())
     val incidents: StateFlow<List<IncidentResponse>> = _incidents.asStateFlow()
 
-    // Event to notify the Composable to navigate after logout
     private val _logoutEvent = MutableStateFlow(false)
     val logoutEvent: StateFlow<Boolean> = _logoutEvent.asStateFlow()
 
@@ -35,12 +34,16 @@ class MyIncidentListViewModel(
     private fun loadUserData() {
         viewModelScope.launch {
             val userResult = userRepository.getCurrentUser()
+
             if (userResult.isSuccess) {
                 _user.value = userResult.getOrNull()
+
                 val incidentsResult = incidentRepository.getMyIncidents()
                 if (incidentsResult.isSuccess) {
                     _incidents.value = incidentsResult.getOrNull() ?: emptyList()
                 }
+            } else {
+                logout()
             }
         }
     }
@@ -54,19 +57,7 @@ class MyIncidentListViewModel(
         }
     }
 
-    fun getShortDescription(incident: IncidentResponse): String {
-        return if (incident.description.length > 50) {
-            incident.description.take(50) + "..."
-        } else {
-            incident.description
-        }
-    }
-
-    fun formatDate(dateString: String): String {
-        return try {
-            dateString.split("T").first()
-        } catch (e: Exception) {
-            dateString
-        }
+    fun resetLogoutEvent() {
+        _logoutEvent.value = false
     }
 }

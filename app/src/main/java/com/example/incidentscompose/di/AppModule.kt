@@ -10,8 +10,9 @@ import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.viewmodel.LoginViewModel
-import com.example.incidentscompose.viewmodel.MyIncidentListViewModel
+import com.example.incidentscompose.viewmodel.MyIncidentViewModel
 import com.example.incidentscompose.viewmodel.RegisterViewModel
+import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -45,7 +46,8 @@ val appModule = module {
     single { IncidentRepository(get())}
 
     viewModel { LoginViewModel(get()) }
-    viewModel { MyIncidentListViewModel(get(), get(), get())}
+    viewModel { MyIncidentViewModel(get(), get(), get())}
     viewModel { RegisterViewModel(get())}
+    viewModel { ReportIncidentViewModel()}
 
 }

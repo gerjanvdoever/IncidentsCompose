@@ -188,7 +188,7 @@ fun RegisterScreen(
                             .fillMaxWidth()
                             .clickable {
                                 navController.navigate(Destinations.Login.route) {
-                                    popUpTo("register") { inclusive = true }
+                                    popUpTo(Destinations.Register.route) { inclusive = true }
                                 }
                             }
                     )

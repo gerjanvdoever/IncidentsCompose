@@ -50,7 +50,7 @@ fun LoginScreen(
         when (autoLoginState) {
             is AutoLoginState.TokenFound -> {
                 navController.navigate(Destinations.MyIncidentList.route) {
-                    popUpTo("login") { inclusive = true }
+                    popUpTo(Destinations.Login.route) { inclusive = true }
                 }
             }
             else -> {}
@@ -61,7 +61,7 @@ fun LoginScreen(
         when (loginState) {
             is LoginState.Success -> {
                 navController.navigate(Destinations.MyIncidentList.route) {
-                    popUpTo("login") { inclusive = true }
+                    popUpTo(Destinations.Login.route) { inclusive = true }
                 }
             }
             else -> {}
