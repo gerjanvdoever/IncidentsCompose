@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
@@ -22,11 +23,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.incidentscompose.data.model.IncidentCategory
+import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -37,6 +41,24 @@ fun ReportIncidentScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    if (uiState.showSuccessDialog) {
+        ReportSuccessDialog(
+            onDismiss = { viewModel.dismissSuccessDialog() },
+            onContinue = {
+                viewModel.dismissSuccessDialog()
+                if (uiState.createdIncident?.reportedBy != null) {
+                    navController.navigate(Destinations.MyIncidentList.route) {
+                        popUpTo(Destinations.ReportIncident.route) { inclusive = true }
+                    }
+                } else {
+                    navController.navigate(Destinations.Login.route) {
+                        popUpTo(Destinations.ReportIncident.route) { inclusive = true }
+                    }
+                }
+            }
+        )
+    }
+
     Scaffold(
         bottomBar = {
             Surface(
@@ -44,27 +66,49 @@ fun ReportIncidentScreen(
                 shadowElevation = 8.dp,
                 color = MaterialTheme.colorScheme.surface
             ) {
-                Button(
-                    onClick = { viewModel.submitReport() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFDC2626),
-                        contentColor = Color.White
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 4.dp,
-                        pressedElevation = 2.dp
-                    )
-                ) {
-                    Text(
-                        "Submit Report",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                Column {
+                    uiState.errorMessage?.let { error ->
+                        Text(
+                            text = error,
+                            color = Color(0xFFDC2626),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    Button(
+                        onClick = { viewModel.submitReport() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFDC2626),
+                            contentColor = Color.White
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 2.dp
+                        ),
+                        enabled = !uiState.isLoading
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                "Submit Report",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -95,10 +139,125 @@ fun ReportIncidentScreen(
             )
 
             MapLocationCard(
+                latitude = uiState.latitude,
+                longitude = uiState.longitude,
                 onUseCurrentLocation = { viewModel.useCurrentLocation() }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+fun MapLocationCard(
+    latitude: Double?,
+    longitude: Double?,
+    onUseCurrentLocation: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp, 8.dp, 16.dp, 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, Color(0xFFD0D7DE)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp, 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Where did you observe this?",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Tap on the map to mark the exact location",
+                    fontSize = 13.sp,
+                    color = Color(0xFF656D76)
+                )
+            }
+
+            // Show selected coordinates if available
+            if (latitude != null && longitude != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFF0F9FF)
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFFBAE6FD))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Selected Location",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0369A1)
+                            )
+                            Text(
+                                text = "Lat: ${"%.6f".format(latitude)}, Lng: ${"%.6f".format(longitude)}",
+                                fontSize = 12.sp,
+                                color = Color(0xFF0C4A6E)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Placeholder for map
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .border(1.dp, Color(0xFFD0D7DE), RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF6F8FA), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Map goes here",
+                    fontSize = 16.sp,
+                    color = Color(0xFF656D76)
+                )
+            }
+
+            Button(
+                onClick = onUseCurrentLocation,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFDDF4FF),
+                    contentColor = Color(0xFF0969DA)
+                ),
+                border = BorderStroke(1.dp, Color(0xFF54AEFF)),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+            ) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Use Sample Location",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
@@ -371,78 +530,78 @@ fun PhotoUploadCard(
 }
 
 @Composable
-fun MapLocationCard(
-    onUseCurrentLocation: () -> Unit
+fun ReportSuccessDialog(
+    onDismiss: () -> Unit,
+    onContinue: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp, 8.dp, 16.dp, 16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, Color(0xFFD0D7DE)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    Dialog(
+        onDismissRequest = onDismiss
     ) {
-        Column(
-            modifier = Modifier.padding(24.dp, 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Where did you observe this?",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Tap on the map to mark the exact location",
-                    fontSize = 13.sp,
-                    color = Color(0xFF656D76)
-                )
-            }
-
-            // Placeholder for map
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .border(1.dp, Color(0xFFD0D7DE), RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF6F8FA), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Text(
-                    text = "Map goes here",
-                    fontSize = 16.sp,
-                    color = Color(0xFF656D76)
-                )
-            }
-
-            Button(
-                onClick = onUseCurrentLocation,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFDDF4FF),
-                    contentColor = Color(0xFF0969DA)
-                ),
-                border = BorderStroke(1.dp, Color(0xFF54AEFF)),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-            ) {
+                // Success Icon
                 Icon(
-                    Icons.Default.LocationOn,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    imageVector = Icons.Filled.CheckCircle,
+                    contentDescription = "Success",
+                    modifier = Modifier.size(64.dp),
+                    tint = Color(0xFF10B981)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Use My Current Location",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+
+                // Title and Message
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Thank You!",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = "Your incident report has been successfully submitted. Our team will review it shortly.",
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+                }
+
+                // Continue Button
+                Button(
+                    onClick = onContinue,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF10B981),
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 4.dp,
+                        pressedElevation = 2.dp
+                    )
+                ) {
+                    Text(
+                        "Continue",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }

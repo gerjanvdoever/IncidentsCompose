@@ -1,7 +1,10 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.incidentscompose.data.model.CreateIncidentRequest
 import com.example.incidentscompose.data.model.IncidentCategory
+import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,10 +19,14 @@ data class ReportIncidentUiState(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val showSuccessDialog: Boolean = false,
+    val createdIncident: IncidentResponse? = null
 )
 
-class ReportIncidentViewModel : BaseViewModel() {
+class ReportIncidentViewModel(
+    private val incidentRepository: IncidentRepository
+) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(ReportIncidentUiState())
     val uiState: StateFlow<ReportIncidentUiState> = _uiState.asStateFlow()
@@ -34,7 +41,6 @@ class ReportIncidentViewModel : BaseViewModel() {
 
     fun addPhoto() {
         // TODO: Implement actual photo picker
-        // For now, just add a placeholder
         viewModelScope.launch {
             val currentPhotos = _uiState.value.photos
             _uiState.update {
@@ -50,7 +56,7 @@ class ReportIncidentViewModel : BaseViewModel() {
     }
 
     fun useCurrentLocation() {
-        // TODO: Implement location fetching
+        // VOOR NU NOG EVEN HARDCODED LAT LONG GEBRUIKEN
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
@@ -78,12 +84,32 @@ class ReportIncidentViewModel : BaseViewModel() {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                // TODO: Implement actual API call
+                val createRequest = CreateIncidentRequest(
+                    category = state.selectedCategory.name,
+                    description = state.description,
+                    latitude = state.latitude,
+                    longitude = state.longitude,
+                    priority = "LOW"
+                )
 
-                _uiState.update {
-                    ReportIncidentUiState(
-                        selectedCategory = IncidentCategory.COMMUNAL
-                    )
+                val result = incidentRepository.createIncident(createRequest)
+
+                if (result.isSuccess) {
+                    val createdIncident = result.getOrThrow()
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            showSuccessDialog = true,
+                            createdIncident = createdIncident
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Failed to submit report: ${result.exceptionOrNull()?.message}"
+                        )
+                    }
                 }
 
             } catch (e: Exception) {
@@ -95,5 +121,9 @@ class ReportIncidentViewModel : BaseViewModel() {
                 }
             }
         }
+    }
+
+    fun dismissSuccessDialog() {
+        _uiState.update { it.copy(showSuccessDialog = false) }
     }
 }

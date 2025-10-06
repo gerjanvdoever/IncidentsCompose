@@ -48,6 +48,6 @@ val appModule = module {
     viewModel { LoginViewModel(get()) }
     viewModel { MyIncidentViewModel(get(), get(), get())}
     viewModel { RegisterViewModel(get())}
-    viewModel { ReportIncidentViewModel()}
+    viewModel { ReportIncidentViewModel(get())}
 
 }

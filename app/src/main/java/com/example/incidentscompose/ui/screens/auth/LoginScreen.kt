@@ -154,7 +154,7 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Button(
-                        onClick = { /* TODO: anonymous report */ },
+                        onClick = { navController.navigate(Destinations.ReportIncident.route) },
                         shape = RoundedCornerShape(25.dp),
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoggingIn.value

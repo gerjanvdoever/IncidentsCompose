@@ -45,7 +45,6 @@ class IncidentApi(
     suspend fun createIncident(createIncidentRequest: CreateIncidentRequest): Result<IncidentResponse> = withContext(Dispatchers.IO) {
         try {
             val token = tokenPreferences.getToken() ?: ""
-            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
 
             val response: HttpResponse = client.post("http://10.0.2.2:8080/api/incidents") {
                 header("Authorization", "Bearer $token")
