@@ -31,6 +31,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.ui.components.TopNavBar
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -58,8 +59,14 @@ fun ReportIncidentScreen(
             }
         )
     }
-
     Scaffold(
+        topBar = {
+            TopNavBar(
+                title = "Report Incident",
+                showBackButton = true,
+                onBackClick = { navController.popBackStack() }
+            )
+        },
         bottomBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -550,7 +557,6 @@ fun ReportSuccessDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Success Icon
                 Icon(
                     imageVector = Icons.Filled.CheckCircle,
                     contentDescription = "Success",
@@ -558,7 +564,6 @@ fun ReportSuccessDialog(
                     tint = Color(0xFF10B981)
                 )
 
-                // Title and Message
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -580,7 +585,6 @@ fun ReportSuccessDialog(
                     )
                 }
 
-                // Continue Button
                 Button(
                     onClick = onContinue,
                     modifier = Modifier
