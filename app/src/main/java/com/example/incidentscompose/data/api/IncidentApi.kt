@@ -44,10 +44,13 @@ class IncidentApi(
 
     suspend fun createIncident(createIncidentRequest: CreateIncidentRequest): Result<IncidentResponse> = withContext(Dispatchers.IO) {
         try {
-            val token = tokenPreferences.getToken() ?: ""
+            val token = tokenPreferences.getToken()
 
             val response: HttpResponse = client.post("http://10.0.2.2:8080/api/incidents") {
-                header("Authorization", "Bearer $token")
+                // Only add Authorization header if token exists
+                token?.let {
+                    header("Authorization", "Bearer $it")
+                }
                 contentType(ContentType.Application.Json)
                 setBody(createIncidentRequest)
             }
@@ -56,7 +59,9 @@ class IncidentApi(
                 val createdIncident: IncidentResponse = response.body()
                 Result.success(createdIncident)
             } else {
-                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                if (response.status == HttpStatusCode.Unauthorized && token != null) {
+                    tokenPreferences.clearToken()
+                }
                 Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
             }
         } catch (e: Exception) {
@@ -70,12 +75,15 @@ class IncidentApi(
         description: String = ""
     ): Result<ImageUploadResponse> = withContext(Dispatchers.IO) {
         try {
-            val token = tokenPreferences.getToken() ?: ""
-            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
+            val token = tokenPreferences.getToken()
+
             if (!imageFile.exists()) return@withContext Result.failure(Exception("Image file does not exist"))
 
             val response: HttpResponse = client.post("http://10.0.2.2:8080/api/incidents/$incidentId/images") {
-                header("Authorization", "Bearer $token")
+                // Only add Authorization header if token exists
+                token?.let {
+                    header("Authorization", "Bearer $it")
+                }
                 setBody(MultiPartFormDataContent(
                     formData {
                         if (description.isNotEmpty()) append("description", description)
@@ -94,7 +102,9 @@ class IncidentApi(
             if (response.status.isSuccess()) {
                 Result.success(ImageUploadResponse(response.bodyAsText()))
             } else {
-                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                if (response.status == HttpStatusCode.Unauthorized && token != null) {
+                    tokenPreferences.clearToken()
+                }
                 Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
             }
         } catch (e: Exception) {
@@ -108,14 +118,16 @@ class IncidentApi(
         description: String = ""
     ): Result<List<ImageUploadResponse>> = withContext(Dispatchers.IO) {
         try {
-            val token = tokenPreferences.getToken() ?: ""
-            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
+            val token = tokenPreferences.getToken()
 
             val validFiles = imageFiles.filter { it.exists() }
             if (validFiles.isEmpty()) return@withContext Result.failure(Exception("No valid image files provided"))
 
             val response: HttpResponse = client.post("http://10.0.2.2:8080/api/incidents/$incidentId/images") {
-                header("Authorization", "Bearer $token")
+                // Only add Authorization header if token exists
+                token?.let {
+                    header("Authorization", "Bearer $it")
+                }
                 setBody(MultiPartFormDataContent(
                     formData {
                         if (description.isNotEmpty()) append("description", description)
@@ -136,7 +148,9 @@ class IncidentApi(
             if (response.status.isSuccess()) {
                 Result.success(listOf(ImageUploadResponse(response.bodyAsText())))
             } else {
-                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                if (response.status == HttpStatusCode.Unauthorized && token != null) {
+                    tokenPreferences.clearToken()
+                }
                 Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
             }
         } catch (e: Exception) {
