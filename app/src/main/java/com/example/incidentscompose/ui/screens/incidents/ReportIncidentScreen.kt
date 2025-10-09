@@ -31,6 +31,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -59,100 +60,106 @@ fun ReportIncidentScreen(
             }
         )
     }
-    Scaffold(
-        topBar = {
-            TopNavBar(
-                title = "Report Incident",
-                showBackButton = true,
-                onBackClick = { navController.popBackStack() }
-            )
-        },
-        bottomBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Column {
-                    uiState.errorMessage?.let { error ->
-                        Text(
-                            text = error,
-                            color = Color(0xFFDC2626),
+
+    // Main Content
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopNavBar(
+                    title = "Report Incident",
+                    showBackButton = true,
+                    onBackClick = { navController.popBackStack() }
+                )
+            },
+            bottomBar = {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shadowElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Column {
+                        uiState.errorMessage?.let { error ->
+                            Text(
+                                text = error,
+                                color = Color(0xFFDC2626),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        Button(
+                            onClick = { viewModel.submitReport() },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 8.dp),
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    Button(
-                        onClick = { viewModel.submitReport() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFDC2626),
-                            contentColor = Color.White
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 4.dp,
-                            pressedElevation = 2.dp
-                        ),
-                        enabled = !uiState.isLoading
-                    ) {
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                "Submit Report",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                                .padding(20.dp)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFDC2626),
+                                contentColor = Color.White
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 2.dp
+                            ),
+                            enabled = !uiState.isLoading
+                        ) {
+                            if (uiState.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    "Submit Report",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
             }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                WarningBanner()
+
+                CategorySelectionCard(
+                    selectedCategory = uiState.selectedCategory,
+                    onCategorySelected = { viewModel.updateCategory(it) }
+                )
+
+                DescriptionInputCard(
+                    description = uiState.description,
+                    onDescriptionChange = { viewModel.updateDescription(it) }
+                )
+
+                PhotoUploadCard(
+                    photos = uiState.photos,
+                    onAddPhoto = { viewModel.addPhoto() },
+                    onRemovePhoto = { viewModel.removePhoto(it) }
+                )
+
+                MapLocationCard(
+                    latitude = uiState.latitude,
+                    longitude = uiState.longitude,
+                    onUseCurrentLocation = { viewModel.useCurrentLocation() }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(rememberScrollState())
-        ) {
-            WarningBanner()
 
-            CategorySelectionCard(
-                selectedCategory = uiState.selectedCategory,
-                onCategorySelected = { viewModel.updateCategory(it) }
-            )
-
-            DescriptionInputCard(
-                description = uiState.description,
-                onDescriptionChange = { viewModel.updateDescription(it) }
-            )
-
-            PhotoUploadCard(
-                photos = uiState.photos,
-                onAddPhoto = { viewModel.addPhoto() },
-                onRemovePhoto = { viewModel.removePhoto(it) }
-            )
-
-            MapLocationCard(
-                latitude = uiState.latitude,
-                longitude = uiState.longitude,
-                onUseCurrentLocation = { viewModel.useCurrentLocation() }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+        LoadingOverlay(isLoading = uiState.isLoading)
     }
 }
 

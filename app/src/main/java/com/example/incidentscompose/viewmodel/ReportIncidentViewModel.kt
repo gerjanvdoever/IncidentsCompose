@@ -98,7 +98,6 @@ class ReportIncidentViewModel(
                     val createdIncident = result.getOrThrow()
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
                             showSuccessDialog = true,
                             createdIncident = createdIncident
                         )
@@ -106,19 +105,18 @@ class ReportIncidentViewModel(
                 } else {
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
                             errorMessage = "Failed to submit report: ${result.exceptionOrNull()?.message}"
                         )
                     }
                 }
-
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        isLoading = false,
                         errorMessage = "Failed to submit report: ${e.message}"
                     )
                 }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }

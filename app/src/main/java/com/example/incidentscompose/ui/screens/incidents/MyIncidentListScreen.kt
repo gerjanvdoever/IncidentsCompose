@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
 import org.koin.compose.koinInject
 
@@ -40,6 +41,7 @@ fun MyIncidentListScreen(
     val user by viewModel.user.collectAsState()
     val incidents by viewModel.incidents.collectAsState()
     val logoutEvent by viewModel.logoutEvent.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     var isDropdownVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(logoutEvent) {
@@ -258,6 +260,8 @@ fun MyIncidentListScreen(
                 }
             }
         }
+
+        LoadingOverlay(isLoading = isLoading)
     }
 }
 

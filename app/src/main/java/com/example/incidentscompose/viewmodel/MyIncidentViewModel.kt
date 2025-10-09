@@ -27,37 +27,78 @@ class MyIncidentViewModel(
     private val _logoutEvent = MutableStateFlow(false)
     val logoutEvent: StateFlow<Boolean> = _logoutEvent.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     init {
         loadUserData()
     }
 
     private fun loadUserData() {
         viewModelScope.launch {
-            val userResult = userRepository.getCurrentUser()
+            _isLoading.value = true
 
-            if (userResult.isSuccess) {
-                _user.value = userResult.getOrNull()
+            try {
+                val userResult = userRepository.getCurrentUser()
 
-                val incidentsResult = incidentRepository.getMyIncidents()
-                if (incidentsResult.isSuccess) {
-                    _incidents.value = incidentsResult.getOrNull() ?: emptyList()
+                if (userResult.isSuccess) {
+                    _user.value = userResult.getOrNull()
+
+                    val incidentsResult = incidentRepository.getMyIncidents()
+                    if (incidentsResult.isSuccess) {
+                        _incidents.value = incidentsResult.getOrNull() ?: emptyList()
+                    }
+                } else {
+                    logout()
                 }
-            } else {
+            } catch (e: Exception) {
+                // Handle error - could add error state here if needed
                 logout()
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
     fun logout() {
         viewModelScope.launch {
-            authRepository.logout()
-            _user.value = null
-            _incidents.value = emptyList()
-            _logoutEvent.value = true
+            _isLoading.value = true
+
+            try {
+                authRepository.logout()
+                _user.value = null
+                _incidents.value = emptyList()
+                _logoutEvent.value = true
+            } catch (e: Exception) {
+                // Even if logout fails, clear local state
+                _user.value = null
+                _incidents.value = emptyList()
+                _logoutEvent.value = true
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
     fun resetLogoutEvent() {
         _logoutEvent.value = false
+    }
+
+    // future pull down to refresh for incident list?
+    fun refreshIncidents() {
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                val incidentsResult = incidentRepository.getMyIncidents()
+                if (incidentsResult.isSuccess) {
+                    _incidents.value = incidentsResult.getOrNull() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                // Handle error - incidents remain unchanged
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 }
