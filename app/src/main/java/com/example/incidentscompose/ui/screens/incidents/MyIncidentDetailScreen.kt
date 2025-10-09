@@ -1,28 +1,36 @@
 package com.example.incidentscompose.ui.screens.incidents
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
@@ -40,12 +48,42 @@ fun MyIncidentDetailScreen(
     var incident by remember { mutableStateOf<IncidentResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
+    // Editable fields
+    var selectedCategory by remember { mutableStateOf<IncidentCategory?>(null) }
+    var editableDescription by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
     val selectedIncidentFlow = viewModel.getSelectedIncident()
+    val isBusy by viewModel.isBusy.collectAsState()
+    val updateResult by viewModel.updateResult.collectAsState()
 
     LaunchedEffect(selectedIncidentFlow) {
         selectedIncidentFlow.collect { selectedIncident ->
             incident = selectedIncident
+            selectedIncident?.let {
+                selectedCategory = enumValueOf<IncidentCategory>(it.category)
+                editableDescription = it.description
+            }
             isLoading = false
+        }
+    }
+
+    LaunchedEffect(updateResult) {
+        updateResult?.let { result ->
+            if (result.isSuccess) {
+                Toast.makeText(
+                    context,
+                    "Incident updated successfully",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                Toast.makeText(
+                    context,
+                    "Failed to update incident: ${result.exceptionOrNull()?.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            viewModel.resetUpdateResult()
         }
     }
 
@@ -86,14 +124,40 @@ fun MyIncidentDetailScreen(
                     )
                 }
             } else {
-                IncidentDetailContent(incident = incident!!, navController = navController)
+                IncidentDetailContent(
+                    incident = incident!!,
+                    selectedCategory = selectedCategory,
+                    editableDescription = editableDescription,
+                    onCategoryChange = { selectedCategory = it },
+                    onDescriptionChange = { editableDescription = it },
+                    onSave = {
+                        incident?.let { inc ->
+                            viewModel.updateIncident(
+                                incidentId = inc.id,
+                                category = selectedCategory,
+                                description = editableDescription.takeIf { it.isNotBlank() }
+                            )
+                        }
+                    },
+                    navController = navController
+                )
             }
+
+            LoadingOverlay(isLoading = isBusy)
         }
     }
 }
 
 @Composable
-private fun IncidentDetailContent(incident: IncidentResponse, navController: NavController) {
+private fun IncidentDetailContent(
+    incident: IncidentResponse,
+    selectedCategory: IncidentCategory?,
+    editableDescription: String,
+    onCategoryChange: (IncidentCategory) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onSave: () -> Unit,
+    navController: NavController
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -101,20 +165,34 @@ private fun IncidentDetailContent(incident: IncidentResponse, navController: Nav
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        IncidentHeaderCard(incident)
-        IncidentDescriptionCard(incident)
+        IncidentHeaderCard(
+            incident = incident,
+            selectedCategory = selectedCategory,
+            onCategoryChange = onCategoryChange
+        )
+        IncidentDescriptionCard(
+            description = editableDescription,
+            onDescriptionChange = onDescriptionChange
+        )
         IncidentImagesCard(incident)
         IncidentLocationCard(incident)
 
-        // Action buttons placed naturally at the bottom of content
-        ActionButtons(navController = navController, incident = incident)
+        ActionButtons(
+            navController = navController,
+            incident = incident,
+            onSave = onSave
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
 @Composable
-private fun ActionButtons(navController: NavController, incident: IncidentResponse) {
+private fun ActionButtons(
+    navController: NavController,
+    incident: IncidentResponse,
+    onSave: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -122,9 +200,7 @@ private fun ActionButtons(navController: NavController, incident: IncidentRespon
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Button(
-            onClick = {
-                // TODO: Add save logic
-            },
+            onClick = onSave,
             modifier = Modifier
                 .weight(1f)
                 .height(52.dp),
@@ -166,9 +242,15 @@ private fun ActionButtons(navController: NavController, incident: IncidentRespon
     }
 }
 
-// The rest of your composable functions remain the same...
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun IncidentHeaderCard(incident: IncidentResponse) {
+private fun IncidentHeaderCard(
+    incident: IncidentResponse,
+    selectedCategory: IncidentCategory?,
+    onCategoryChange: (IncidentCategory) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -185,7 +267,7 @@ private fun IncidentHeaderCard(incident: IncidentResponse) {
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Category
+            // Category Dropdown
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "CATEGORY",
@@ -194,13 +276,59 @@ private fun IncidentHeaderCard(incident: IncidentResponse) {
                     color = Color(0xFF6B7280),
                     letterSpacing = 0.8.sp
                 )
-                Text(
-                    text = formatCategoryText(incident.category),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827),
-                    lineHeight = 32.sp
-                )
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    // This is the anchor for the dropdown (Surface/Row)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF9FAFB),
+                        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { expanded = true }
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = selectedCategory?.let { formatCategoryText(it.name) } ?: "Select Category",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF111827)
+                            )
+                            Icon(
+                                imageVector = Icons.Outlined.KeyboardArrowDown,
+                                contentDescription = "Expand",
+                                tint = Color(0xFF6B7280)
+                            )
+                        }
+                    }
+
+                    // This is the actual dropdown menu (not DropdownMenu)
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        IncidentCategory.entries.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(formatCategoryText(category.name)) },
+                                onClick = {
+                                    onCategoryChange(category)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
             }
 
             // Status Badge
@@ -302,7 +430,10 @@ private fun IncidentHeaderCard(incident: IncidentResponse) {
 }
 
 @Composable
-private fun IncidentDescriptionCard(incident: IncidentResponse) {
+private fun IncidentDescriptionCard(
+    description: String,
+    onDescriptionChange: (String) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -327,13 +458,28 @@ private fun IncidentDescriptionCard(incident: IncidentResponse) {
                 letterSpacing = 0.8.sp
             )
 
-            Text(
-                text = incident.description,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal,
-                color = Color(0xFF374151),
-                lineHeight = 24.sp
-            )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFF9FAFB),
+                border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+            ) {
+                BasicTextField(
+                    value = description,
+                    onValueChange = onDescriptionChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp)
+                        .padding(16.dp),
+                    textStyle = TextStyle(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFF374151),
+                        lineHeight = 24.sp
+                    ),
+                    cursorBrush = SolidColor(Color(0xFF0D47A1))
+                )
+            }
         }
     }
 }

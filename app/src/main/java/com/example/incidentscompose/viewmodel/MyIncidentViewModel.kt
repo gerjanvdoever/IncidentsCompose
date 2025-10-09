@@ -1,7 +1,9 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.data.model.UpdateIncidentRequest
 import com.example.incidentscompose.data.model.UserResponse
 import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.data.repository.IncidentRepository
@@ -31,6 +33,9 @@ class MyIncidentViewModel(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _updateResult = MutableStateFlow<Result<IncidentResponse>?>(null)
+    val updateResult: StateFlow<Result<IncidentResponse>?> = _updateResult.asStateFlow()
 
     init {
         loadUserData()
@@ -101,6 +106,46 @@ class MyIncidentViewModel(
                 _isLoading.value = false
             }
         }
+    }
+
+    fun updateIncident(
+        incidentId: Long,
+        category: IncidentCategory?,
+        description: String?,
+        latitude: Double? = null,
+        longitude: Double? = null
+    ) {
+        viewModelScope.launch {
+            withLoading {
+                try {
+                    val updateRequest = UpdateIncidentRequest(
+                        category = category,
+                        description = description,
+                        latitude = latitude,
+                        longitude = longitude
+                    )
+
+                    val result = incidentRepository.updateIncident(incidentId, updateRequest)
+                    _updateResult.value = result
+
+                    if (result.isSuccess) {
+                        // Update the selected incident in the data store
+                        result.getOrNull()?.let { updatedIncident ->
+                            incidentDataStore.saveSelectedIncident(updatedIncident)
+                        }
+
+                        // Refresh the incidents list
+                        refreshIncidents()
+                    }
+                } catch (e: Exception) {
+                    _updateResult.value = Result.failure(e)
+                }
+            }
+        }
+    }
+
+    fun resetUpdateResult() {
+        _updateResult.value = null
     }
 
     fun saveSelectedIncident(incident: IncidentResponse) {
