@@ -8,6 +8,7 @@ import com.example.incidentscompose.data.api.UserApi
 import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.repository.UserRepository
+import com.example.incidentscompose.data.store.IncidentDataStore
 import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.viewmodel.LoginViewModel
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
@@ -26,8 +27,8 @@ private val Context.dataStore by preferencesDataStore("user_prefs")
 
 val appModule = module {
 
-    // DataStore wrapper
     single { TokenPreferences(androidContext()) }
+    single { IncidentDataStore(androidContext())}
 
     single {
         HttpClient(CIO) {
@@ -46,7 +47,7 @@ val appModule = module {
     single { IncidentRepository(get())}
 
     viewModel { LoginViewModel(get()) }
-    viewModel { MyIncidentViewModel(get(), get(), get())}
+    viewModel { MyIncidentViewModel(authRepository = get(), incidentRepository = get(), incidentDataStore = get(), userRepository = get())}
     viewModel { RegisterViewModel(get())}
     viewModel { ReportIncidentViewModel(get())}
 

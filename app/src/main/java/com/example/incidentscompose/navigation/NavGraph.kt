@@ -8,6 +8,7 @@ import com.example.incidentscompose.ui.screens.auth.LoginScreen
 import com.example.incidentscompose.ui.screens.auth.RegisterScreen
 import com.example.incidentscompose.ui.screens.incidents.MyIncidentListScreen
 import com.example.incidentscompose.ui.screens.incidents.ReportIncidentScreen
+import com.example.incidentscompose.ui.screens.incidents.MyIncidentDetailScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -28,7 +29,7 @@ fun NavGraph(navController: NavHostController) {
             TODO("Implement UserProfileScreen composable")
         }
         composable(Destinations.MyIncidentDetail.route) {
-            TODO("Implement MyIncidentDetailScreen composable")
+            MyIncidentDetailScreen(navController)
         }
         composable(Destinations.ReportIncident.route) {
             ReportIncidentScreen(navController)

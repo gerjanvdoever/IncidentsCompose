@@ -30,6 +30,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.LoadingOverlay
+import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
+import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
+import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
 import org.koin.compose.koinInject
 
@@ -202,7 +205,8 @@ fun MyIncidentListScreen(
                             IncidentCard(
                                 incident = incident,
                                 onClick = {
-                                    navController.navigate("incidentDetail/${incident.id}")
+                                    viewModel.saveSelectedIncident(incident)
+                                    navController.navigate(Destinations.MyIncidentDetail.route)
                                 }
                             )
                         }
@@ -397,34 +401,5 @@ private fun IncidentCard(
                 color = Color(0xFFCCCCCC)
             )
         }
-    }
-}
-
-fun getStatusColor(status: String): Color {
-    return when (status.uppercase()) {
-        "ASSIGNED" -> Color(0xFFFF6B35)
-        "RESOLVED" -> Color(0xFF4CAF50)
-        "REPORTED" -> Color(0xFFFFC107)
-        else -> Color.Gray
-    }
-}
-
-fun formatDateForDisplay(dateString: String): String {
-    return try {
-        if (dateString.contains("T")) {
-            dateString.split("T").first()
-        } else {
-            dateString
-        }
-    } catch (e: Exception) {
-        dateString
-    }
-}
-
-fun formatCategoryText(category: String): String {
-    return if (category.isNotEmpty()) {
-        category.lowercase().replaceFirstChar { it.uppercase() }
-    } else {
-        category
     }
 }

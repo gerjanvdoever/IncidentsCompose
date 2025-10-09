@@ -6,6 +6,7 @@ import com.example.incidentscompose.data.model.UserResponse
 import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.repository.UserRepository
+import com.example.incidentscompose.data.store.IncidentDataStore
 import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,8 @@ import kotlinx.coroutines.launch
 class MyIncidentViewModel(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val incidentRepository: IncidentRepository
+    private val incidentRepository: IncidentRepository,
+    private val incidentDataStore: IncidentDataStore
 ) : BaseViewModel() {
 
     private val _user = MutableStateFlow<UserResponse?>(null)
@@ -52,7 +54,6 @@ class MyIncidentViewModel(
                     logout()
                 }
             } catch (e: Exception) {
-                // Handle error - could add error state here if needed
                 logout()
             } finally {
                 _isLoading.value = false
@@ -101,4 +102,27 @@ class MyIncidentViewModel(
             }
         }
     }
+
+    fun saveSelectedIncident(incident: IncidentResponse) {
+        viewModelScope.launch {
+            incidentDataStore.saveSelectedIncident(incident)
+        }
+    }
+
+    fun getSelectedIncident() = incidentDataStore.selectedIncident
+
+    fun clearSelectedIncident() {
+        viewModelScope.launch {
+            incidentDataStore.clearSelectedIncident()
+        }
+    }
+
+    // OPTIONAL LATER: SAVE RECENT INCIDENTS FOR CACHING
+    fun saveRecentIncidents(incidents: List<IncidentResponse>) {
+        viewModelScope.launch {
+            incidentDataStore.saveRecentIncidents(incidents)
+        }
+    }
+
+    fun getRecentIncidents() = incidentDataStore.recentIncidents
 }
