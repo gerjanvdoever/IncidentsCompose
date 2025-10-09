@@ -57,213 +57,226 @@ fun MyIncidentListScreen(
     val totalIncidents = incidents.size
     val activeIncidents = incidents.count { it.status.lowercase() == "active" || it.status.lowercase() == "assigned" }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF8F9FA))
+                .padding(paddingValues)
         ) {
-            Box(
+
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF0D47A1),
-                                Color(0xFF1976D2)
-                            )
-                        )
-                    )
-                    .padding(20.dp)
+                    .fillMaxSize()
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = CircleShape,
-                                ambientColor = Color.Black.copy(alpha = 0.2f)
-                            )
-                            .clip(CircleShape)
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "User Avatar",
-                            tint = Color(0xFF0D47A1),
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 15.dp)
-                    ) {
-                        Text(
-                            text = fullName,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Account Dashboard",
-                            fontSize = 14.sp,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f))
-                            .clickable { isDropdownVisible = !isDropdownVisible },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalArrangement = Arrangement.spacedBy(15.dp)
-            ) {
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Total Incidents",
-                    value = totalIncidents.toString(),
-                    valueColor = Color(0xFF0D47A1)
-                )
-
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Active",
-                    value = activeIncidents.toString(),
-                    valueColor = Color(0xFFFF6B35)
-                )
-            }
-
-            Text(
-                text = "My incidents",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 0.dp)
-            )
-
-            if (incidents.isEmpty()) {
+                // Gradient Header
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF0D47A1),
+                                    Color(0xFF1976D2)
+                                )
+                            )
+                        )
+                        .padding(20.dp)
                 ) {
-                    Text(
-                        text = "No incidents found.",
-                        color = Color.Gray,
-                        fontSize = 16.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = CircleShape,
+                                    ambientColor = Color.Black.copy(alpha = 0.2f)
+                                )
+                                .clip(CircleShape)
+                                .background(Color.White),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "User Avatar",
+                                tint = Color(0xFF0D47A1),
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 15.dp)
+                        ) {
+                            Text(
+                                text = fullName,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Account Dashboard",
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.2f))
+                                .clickable { isDropdownVisible = !isDropdownVisible },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
-            } else {
-                LazyColumn(
+
+                // Stats row
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(horizontal = 20.dp, vertical = 15.dp),
-                    verticalArrangement = Arrangement.spacedBy(15.dp)
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
-                    items(incidents) { incident ->
-                        IncidentCard(
-                            incident = incident,
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Total Incidents",
+                        value = totalIncidents.toString(),
+                        valueColor = Color(0xFF0D47A1)
+                    )
+
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Active",
+                        value = activeIncidents.toString(),
+                        valueColor = Color(0xFFFF6B35)
+                    )
+                }
+
+                Text(
+                    text = "My incidents",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 0.dp)
+                )
+
+                if (incidents.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No incidents found.",
+                            color = Color.Gray,
+                            fontSize = 16.sp
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 20.dp, vertical = 15.dp),
+                        verticalArrangement = Arrangement.spacedBy(15.dp)
+                    ) {
+                        items(incidents) { incident ->
+                            IncidentCard(
+                                incident = incident,
+                                onClick = {
+                                    navController.navigate("incidentDetail/${incident.id}")
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            FloatingActionButton(
+                onClick = { navController.navigate(Destinations.ReportIncident.route) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(25.dp),
+                containerColor = Color(0xFF0D47A1),
+                shape = CircleShape
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Create Incident",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            if (isDropdownVisible) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { isDropdownVisible = false }
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isDropdownVisible,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { -20 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { -20 }),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 80.dp, end = 20.dp)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .width(200.dp)
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White
+                ) {
+                    Column {
+                        DropdownMenuItem(
+                            text = { Text("Details", color = Color(0xFF1976D2)) },
+                            onClick = { isDropdownVisible = false },
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+
+                        HorizontalDivider(color = Color(0xFFEEEEEE))
+
+                        DropdownMenuItem(
+                            text = { Text("Logout", color = Color(0xFFD32F2F)) },
                             onClick = {
-                                navController.navigate("incidentDetail/${incident.id}")
-                            }
+                                isDropdownVisible = false
+                                viewModel.logout()
+                            },
+                            modifier = Modifier.padding(vertical = 4.dp)
                         )
                     }
                 }
             }
+
+            LoadingOverlay(isLoading = isLoading)
         }
-
-        FloatingActionButton(
-            onClick = { navController.navigate(Destinations.ReportIncident.route) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(25.dp),
-            containerColor = Color(0xFF0D47A1),
-            shape = CircleShape
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Create Incident",
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-
-        if (isDropdownVisible) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { isDropdownVisible = false }
-            )
-        }
-
-        AnimatedVisibility(
-            visible = isDropdownVisible,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { -20 }),
-            exit = fadeOut() + slideOutVertically(targetOffsetY = { -20 }),
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 80.dp, end = 20.dp)
-        ) {
-            Surface(
-                modifier = Modifier
-                    .width(200.dp)
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White
-            ) {
-                Column {
-                    DropdownMenuItem(
-                        text = { Text("Details", color = Color(0xFF1976D2)) },
-                        onClick = { isDropdownVisible = false },
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-
-                    HorizontalDivider(color = Color(0xFFEEEEEE))
-
-                    DropdownMenuItem(
-                        text = { Text("Logout", color = Color(0xFFD32F2F)) },
-                        onClick = {
-                            isDropdownVisible = false
-                            viewModel.logout()
-                        },
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                }
-            }
-        }
-
-        LoadingOverlay(isLoading = isLoading)
     }
 }
+
 
 @Composable
 private fun StatCard(

@@ -1,8 +1,14 @@
 package com.example.incidentscompose.data.api
 
+import com.example.incidentscompose.data.model.ChangePriorityRequest
+import com.example.incidentscompose.data.model.ChangeStatusRequest
 import com.example.incidentscompose.data.model.CreateIncidentRequest
 import com.example.incidentscompose.data.model.ImageUploadResponse
 import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.data.model.PaginatedItemResponse
+import com.example.incidentscompose.data.model.Priority
+import com.example.incidentscompose.data.model.Status
+import com.example.incidentscompose.data.model.UpdateIncidentRequest
 import com.example.incidentscompose.data.store.TokenPreferences
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -157,6 +163,162 @@ class IncidentApi(
             Result.failure(e)
         }
     }
+
+    // Officials and admins only
+    suspend fun getAllIncidents(): Result<List<IncidentResponse>> = withContext(Dispatchers.IO) {
+        try {
+            val token = tokenPreferences.getToken() ?: ""
+            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
+
+            val response: HttpResponse = client.get("http://10.0.2.2:8080/api/incidents") {
+                header("Authorization", "Bearer $token")
+            }
+
+            if (response.status.isSuccess()) {
+                val incidents: List<IncidentResponse> = response.body()
+                Result.success(incidents)
+            } else {
+                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPaginatedIncidents(page: Int = 1, pageSize: Int = 10): Result<PaginatedItemResponse<IncidentResponse>> = withContext(Dispatchers.IO) {
+        try {
+            val token = tokenPreferences.getToken() ?: ""
+            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
+
+            val response: HttpResponse = client.get("http://10.0.2.2:8080/api/incidents/paginated") {
+                header("Authorization", "Bearer $token")
+                parameter("page", page)
+                parameter("pageSize", pageSize)
+            }
+
+            if (response.status.isSuccess()) {
+                val paginatedResponse: PaginatedItemResponse<IncidentResponse> = response.body()
+                Result.success(paginatedResponse)
+            } else {
+                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getIncidentById(incidentId: Long): Result<IncidentResponse> = withContext(Dispatchers.IO) {
+        try {
+            val token = tokenPreferences.getToken() ?: ""
+            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
+
+            val response: HttpResponse = client.get("http://10.0.2.2:8080/api/incidents/$incidentId") {
+                header("Authorization", "Bearer $token")
+            }
+
+            if (response.status.isSuccess()) {
+                val incident: IncidentResponse = response.body()
+                Result.success(incident)
+            } else {
+                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateIncident(incidentId: Long, updateRequest: UpdateIncidentRequest): Result<IncidentResponse> = withContext(Dispatchers.IO) {
+        try {
+            val token = tokenPreferences.getToken() ?: ""
+            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
+
+            val response: HttpResponse = client.put("http://10.0.2.2:8080/api/incidents/$incidentId") {
+                header("Authorization", "Bearer $token")
+                contentType(ContentType.Application.Json)
+                setBody(updateRequest)
+            }
+
+            if (response.status.isSuccess()) {
+                val updatedIncident: IncidentResponse = response.body()
+                Result.success(updatedIncident)
+            } else {
+                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteIncident(incidentId: Long): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val token = tokenPreferences.getToken() ?: ""
+            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
+
+            val response: HttpResponse = client.delete("http://10.0.2.2:8080/api/incidents/$incidentId") {
+                header("Authorization", "Bearer $token")
+            }
+
+            if (response.status.isSuccess()) {
+                Result.success(Unit)
+            } else {
+                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun changeIncidentPriority(incidentId: Long, priority: Priority): Result<IncidentResponse> = withContext(Dispatchers.IO) {
+        try {
+            val token = tokenPreferences.getToken() ?: ""
+            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
+
+            val response: HttpResponse = client.patch("http://10.0.2.2:8080/api/incidents/$incidentId/priority") {
+                header("Authorization", "Bearer $token")
+                contentType(ContentType.Application.Json)
+                setBody(ChangePriorityRequest(priority))
+            }
+
+            if (response.status.isSuccess()) {
+                val updatedIncident: IncidentResponse = response.body()
+                Result.success(updatedIncident)
+            } else {
+                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun changeIncidentStatus(incidentId: Long, status: Status): Result<IncidentResponse> = withContext(Dispatchers.IO) {
+        try {
+            val token = tokenPreferences.getToken() ?: ""
+            if (token.isEmpty()) return@withContext Result.failure(Exception("No token available"))
+
+            val response: HttpResponse = client.patch("http://10.0.2.2:8080/api/incidents/$incidentId/status") {
+                header("Authorization", "Bearer $token")
+                contentType(ContentType.Application.Json)
+                setBody(ChangeStatusRequest(status))
+            }
+
+            if (response.status.isSuccess()) {
+                val updatedIncident: IncidentResponse = response.body()
+                Result.success(updatedIncident)
+            } else {
+                if (response.status == HttpStatusCode.Unauthorized) tokenPreferences.clearToken()
+                Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 
     private fun getContentTypeForFile(file: File): String {
         return when (file.extension.lowercase()) {

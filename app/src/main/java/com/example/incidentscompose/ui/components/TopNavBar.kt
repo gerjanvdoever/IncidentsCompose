@@ -4,9 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,17 +22,16 @@ fun TopNavBar(
     title: String,
     showBackButton: Boolean = true,
     onBackClick: (() -> Unit)? = null,
-    height: Dp = 50.dp,
-    padding: Dp = 10.dp,
-    backgroundColor: Color = Color.White,
-    textColor: Color = Color.Black
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
+    textColor: Color = Color.Black,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(height)
             .background(backgroundColor)
-            .padding(padding),
+            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()) // pushes below status bar
+            .height(50.dp)
+            .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         if (showBackButton && onBackClick != null) {
@@ -60,3 +59,4 @@ fun TopNavBar(
         )
     }
 }
+

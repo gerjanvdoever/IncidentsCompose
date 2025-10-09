@@ -60,68 +60,14 @@ fun ReportIncidentScreen(
             }
         )
     }
-
-    // Main Content
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
                 TopNavBar(
                     title = "Report Incident",
                     showBackButton = true,
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { navController.popBackStack() },
                 )
-            },
-            bottomBar = {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Column {
-                        uiState.errorMessage?.let { error ->
-                            Text(
-                                text = error,
-                                color = Color(0xFFDC2626),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                                fontSize = 14.sp
-                            )
-                        }
-
-                        Button(
-                            onClick = { viewModel.submitReport() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp)
-                                .height(56.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFDC2626),
-                                contentColor = Color.White
-                            ),
-                            elevation = ButtonDefaults.buttonElevation(
-                                defaultElevation = 4.dp,
-                                pressedElevation = 2.dp
-                            ),
-                            enabled = !uiState.isLoading
-                        ) {
-                            if (uiState.isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(
-                                    "Submit Report",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-                }
             }
         ) { paddingValues ->
             Column(
@@ -155,10 +101,51 @@ fun ReportIncidentScreen(
                     onUseCurrentLocation = { viewModel.useCurrentLocation() }
                 )
 
+                // Error message section - only shown when there's an error
+                if (!uiState.errorMessage.isNullOrBlank()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .shadow(4.dp, RoundedCornerShape(8.dp)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                        border = BorderStroke(1.dp, Color(0xFFFECACA))
+                    ) {
+                        Text(
+                            text = uiState.errorMessage ?: "",
+                            color = Color(0xFFDC2626),
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .fillMaxWidth(),
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = { viewModel.submitReport() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFDC2626),
+                        contentColor = Color.White
+                    ),
+                    enabled = !uiState.isLoading
+                ) {
+                    Text(
+                        "Submit Report",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
-
         LoadingOverlay(isLoading = uiState.isLoading)
     }
 }
