@@ -55,7 +55,7 @@ fun MyIncidentListScreen(
 
     val fullName = user?.username ?: "Loading..."
     val totalIncidents = incidents.size
-    val activeIncidents = incidents.count { it.status.lowercase() == "active" || it.status.lowercase() == "assigned" }
+    val activeIncidents = incidents.count { it.status.lowercase() == "reported" || it.status.lowercase() == "assigned" }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -194,8 +194,9 @@ fun MyIncidentListScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .padding(horizontal = 20.dp, vertical = 15.dp),
-                        verticalArrangement = Arrangement.spacedBy(15.dp)
+                            .padding(horizontal = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(15.dp),
+                        contentPadding = PaddingValues(vertical = 15.dp)
                     ) {
                         items(incidents) { incident ->
                             IncidentCard(
@@ -325,6 +326,7 @@ private fun IncidentCard(
     }
 
     val formattedDate = formatDateForDisplay(incident.createdAt)
+    val formattedCategory = formatCategoryText(incident.category)
 
     Surface(
         modifier = Modifier
@@ -342,21 +344,12 @@ private fun IncidentCard(
                 .padding(20.dp, 15.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(getPriorityColor(incident.priority))
-            )
-
-            Spacer(modifier = Modifier.width(15.dp))
-
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = incident.category,
+                    text = formattedCategory,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -388,21 +381,11 @@ private fun IncidentCard(
                         )
                     }
 
-                    Column(
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Text(
-                            text = incident.priority,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = getPriorityColor(incident.priority)
-                        )
-                        Text(
-                            text = formattedDate,
-                            fontSize = 12.sp,
-                            color = Color(0xFF888888)
-                        )
-                    }
+                    Text(
+                        text = formattedDate,
+                        fontSize = 12.sp,
+                        color = Color(0xFF888888)
+                    )
                 }
             }
 
@@ -419,20 +402,9 @@ private fun IncidentCard(
 
 fun getStatusColor(status: String): Color {
     return when (status.uppercase()) {
-        "ACTIVE", "ASSIGNED" -> Color(0xFFFF6B35)
-        "RESOLVED", "COMPLETED" -> Color(0xFF4CAF50)
-        "PENDING" -> Color(0xFFFFC107)
-        "NORMAL" -> Color(0xFF2196F3)
-        "HIGH" -> Color(0xFFF44336)
-        else -> Color.Gray
-    }
-}
-
-fun getPriorityColor(priority: String): Color {
-    return when (priority.uppercase()) {
-        "HIGH" -> Color(0xFFF44336)
-        "NORMAL" -> Color(0xFF2196F3)
-        "LOW" -> Color(0xFF4CAF50)
+        "ASSIGNED" -> Color(0xFFFF6B35)
+        "RESOLVED" -> Color(0xFF4CAF50)
+        "REPORTED" -> Color(0xFFFFC107)
         else -> Color.Gray
     }
 }
@@ -446,5 +418,13 @@ fun formatDateForDisplay(dateString: String): String {
         }
     } catch (e: Exception) {
         dateString
+    }
+}
+
+fun formatCategoryText(category: String): String {
+    return if (category.isNotEmpty()) {
+        category.lowercase().replaceFirstChar { it.uppercase() }
+    } else {
+        category
     }
 }
