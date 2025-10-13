@@ -29,8 +29,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.example.incidentscompose.R
 import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.ui.components.BottomNavBar
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
@@ -49,6 +51,14 @@ fun MyIncidentListScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     var isDropdownVisible by remember { mutableStateOf(false) }
 
+    // Get user role from token
+    val tokenPreferences = koinInject<com.example.incidentscompose.data.store.TokenPreferences>()
+    var userRole by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        userRole = tokenPreferences.getUserRole()
+    }
+
     LaunchedEffect(logoutEvent) {
         if (logoutEvent) {
             navController.navigate(Destinations.Login.route) {
@@ -64,7 +74,26 @@ fun MyIncidentListScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            if (userRole == "OFFICIAL" || userRole == "ADMIN") {
+                val currentRoute = navController.currentBackStackEntry?.destination?.route ?: ""
+                BottomNavBar(
+                    modifier = Modifier.navigationBarsPadding(),
+                    currentRoute = currentRoute,
+                    userRole = userRole,
+                    onItemClick = { route ->
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+        }
     ) { paddingValues ->
 
         Box(
@@ -220,7 +249,7 @@ fun MyIncidentListScreen(
                 onClick = { navController.navigate(Destinations.ReportIncident.route) },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(25.dp),
+                    .padding(bottom = 20.dp, end = 20.dp),
                 containerColor = Color(0xFF0D47A1),
                 shape = CircleShape
             ) {
@@ -318,7 +347,6 @@ fun MyIncidentListScreen(
         }
     }
 }
-
 
 @Composable
 private fun StatCard(
