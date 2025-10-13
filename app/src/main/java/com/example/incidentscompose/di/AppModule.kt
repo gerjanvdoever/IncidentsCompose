@@ -1,7 +1,5 @@
 package com.example.incidentscompose.di
 
-import android.content.Context
-import androidx.datastore.preferences.preferencesDataStore
 import com.example.incidentscompose.data.api.AuthApi
 import com.example.incidentscompose.data.api.IncidentApi
 import com.example.incidentscompose.data.api.UserApi
@@ -24,33 +22,30 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
-private val Context.dataStore by preferencesDataStore("user_prefs")
-
-val appModule = module {
-
-    single { TokenPreferences(androidContext()) }
-    single { IncidentDataStore(androidContext())}
-
+val networkModule = module {
     single {
         HttpClient(CIO) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         }
     }
+}
 
+val dataModule = module {
+    single { TokenPreferences(androidContext()) }
+    single { IncidentDataStore(androidContext()) }
     single { AuthApi(get()) }
     single { UserApi(get(), get()) }
-    single { IncidentApi(get(), get())}
-
+    single { IncidentApi(get(), get()) }
     single { AuthRepository(get(), get()) }
-    single { UserRepository(get())}
-    single { IncidentRepository(get())}
-
-    viewModel { LoginViewModel(get()) }
-    viewModel { MyIncidentViewModel(authRepository = get(), incidentRepository = get(), incidentDataStore = get(), userRepository = get())}
-    viewModel { RegisterViewModel(get())}
-    viewModel { ReportIncidentViewModel(get())}
-    viewModel { UserViewModel(get())}
-
+    single { UserRepository(get()) }
+    single { IncidentRepository(get()) }
 }
+
+val viewModelModule = module {
+    viewModel { LoginViewModel(get()) }
+    viewModel { MyIncidentViewModel(get(), get(), get(), get()) }
+    viewModel { RegisterViewModel(get()) }
+    viewModel { ReportIncidentViewModel(get()) }
+    viewModel { UserViewModel(get()) }
+}
+

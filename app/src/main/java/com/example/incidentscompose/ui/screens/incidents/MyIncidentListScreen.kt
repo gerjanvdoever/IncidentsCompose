@@ -1,5 +1,6 @@
 package com.example.incidentscompose.ui.screens.incidents
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,8 +25,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import android.provider.Settings
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -53,6 +56,7 @@ fun MyIncidentListScreen(
     val logoutEvent by viewModel.logoutEvent.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     var isDropdownVisible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     // Get user role from token
     val tokenPreferences = koinInject<com.example.incidentscompose.data.store.TokenPreferences>()
@@ -183,7 +187,6 @@ fun MyIncidentListScreen(
                     }
                 }
 
-                // Stats row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -318,6 +321,35 @@ fun MyIncidentListScreen(
                                     val route = Destinations.UserProfile.createRoute(encodedUserJson)
                                     navController.navigate(route)
                                 }
+                            },
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+
+                        HorizontalDivider(color = Color(0xFFEEEEEE))
+
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.language),
+                                        contentDescription = "Language settings",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        "Language",
+                                        color = Color.Black,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            },
+                            onClick = {
+                                isDropdownVisible = false
+                                val intent = Intent(Settings.ACTION_LOCALE_SETTINGS)
+                                context.startActivity(intent)
                             },
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
