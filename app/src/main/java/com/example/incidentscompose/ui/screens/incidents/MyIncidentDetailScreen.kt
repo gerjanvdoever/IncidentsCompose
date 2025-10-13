@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -24,12 +23,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.ui.components.LoadingOverlay
@@ -52,10 +53,16 @@ fun MyIncidentDetailScreen(
     var selectedCategory by remember { mutableStateOf<IncidentCategory?>(null) }
     var editableDescription by remember { mutableStateOf("") }
 
+    // Dialog states
+    var showResolvedDialog by remember { mutableStateOf(false) }
+    var showCannotDeleteDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+
     val context = LocalContext.current
     val selectedIncidentFlow = viewModel.getSelectedIncident()
     val isBusy by viewModel.isBusy.collectAsState()
     val updateResult by viewModel.updateResult.collectAsState()
+    val deleteResult by viewModel.deleteResult.collectAsState()
 
     LaunchedEffect(selectedIncidentFlow) {
         selectedIncidentFlow.collect { selectedIncident ->
@@ -87,10 +94,173 @@ fun MyIncidentDetailScreen(
         }
     }
 
+    LaunchedEffect(deleteResult) {
+        deleteResult?.let { result ->
+            if (result.isSuccess) {
+                Toast.makeText(
+                    context,
+                    "Incident deleted successfully",
+                    Toast.LENGTH_LONG
+                ).show()
+                viewModel.refreshIncidents()
+                navController.popBackStack()
+            } else {
+                Toast.makeText(
+                    context,
+                    "Failed to delete incident: ${result.exceptionOrNull()?.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            viewModel.resetDeleteResult()
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             viewModel.clearSelectedIncident()
         }
+    }
+
+    // Resolved Incident Dialog
+    if (showResolvedDialog) {
+        AlertDialog(
+            onDismissRequest = { showResolvedDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF16A34A),
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Incident Already Resolved",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "This incident has been marked as resolved and can no longer be modified.",
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showResolvedDialog = false }
+                ) {
+                    Text(
+                        text = "OK",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
+                    )
+                }
+            },
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    // Cannot Delete Dialog
+    if (showCannotDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showCannotDeleteDialog = false },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.delete),
+                    contentDescription = null,
+                    tint = Color(0xFFEF4444),
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Cannot Delete Incident",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "Incidents that are assigned or resolved cannot be deleted.",
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showCannotDeleteDialog = false }
+                ) {
+                    Text(
+                        text = "OK",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
+                    )
+                }
+            },
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.delete),
+                    contentDescription = null,
+                    tint = Color(0xFFD32F2F),
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Delete Incident?",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete this incident? This action cannot be undone.",
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmDialog = false
+                        incident?.let { inc ->
+                            viewModel.deleteIncident(inc.id)
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFFD32F2F)
+                    )
+                ) {
+                    Text(
+                        text = "Delete",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmDialog = false }
+                ) {
+                    Text(
+                        text = "Cancel",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
+                    )
+                }
+            },
+            shape = RoundedCornerShape(20.dp)
+        )
     }
 
     Scaffold(
@@ -132,14 +302,27 @@ fun MyIncidentDetailScreen(
                     onDescriptionChange = { editableDescription = it },
                     onSave = {
                         incident?.let { inc ->
-                            viewModel.updateIncident(
-                                incidentId = inc.id,
-                                category = selectedCategory,
-                                description = editableDescription.takeIf { it.isNotBlank() }
-                            )
+                            if (inc.status.uppercase() == "RESOLVED") {
+                                showResolvedDialog = true
+                            } else {
+                                viewModel.updateIncident(
+                                    incidentId = inc.id,
+                                    category = selectedCategory,
+                                    description = editableDescription.takeIf { it.isNotBlank() }
+                                )
+                            }
                         }
                     },
-                    navController = navController
+                    onDelete = {
+                        incident?.let { inc ->
+                            val status = inc.status.uppercase()
+                            if (status == "ASSIGNED" || status == "RESOLVED") {
+                                showCannotDeleteDialog = true
+                            } else {
+                                showDeleteConfirmDialog = true
+                            }
+                        }
+                    }
                 )
             }
 
@@ -156,7 +339,7 @@ private fun IncidentDetailContent(
     onCategoryChange: (IncidentCategory) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onSave: () -> Unit,
-    navController: NavController
+    onDelete: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -178,9 +361,8 @@ private fun IncidentDetailContent(
         IncidentLocationCard(incident)
 
         ActionButtons(
-            navController = navController,
-            incident = incident,
-            onSave = onSave
+            onSave = onSave,
+            onDelete = onDelete
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -189,9 +371,8 @@ private fun IncidentDetailContent(
 
 @Composable
 private fun ActionButtons(
-    navController: NavController,
-    incident: IncidentResponse,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -222,27 +403,24 @@ private fun ActionButtons(
         }
 
         OutlinedButton(
-            onClick = {
-                // TODO: Add delete logic
-            },
-            modifier = Modifier
-                .size(52.dp),
+            onClick = onDelete,
+            modifier = Modifier.size(52.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = Color(0xFFD32F2F)
             ),
-            border = BorderStroke(1.5.dp, Color(0xFFD32F2F))
+            border = BorderStroke(1.5.dp, Color(0xFFD32F2F)),
+            contentPadding = PaddingValues(0.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.Delete,
+                painter = painterResource(id = R.drawable.delete),
                 contentDescription = "Delete incident",
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun IncidentHeaderCard(
     incident: IncidentResponse,
@@ -267,7 +445,7 @@ private fun IncidentHeaderCard(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Category Dropdown
+            // CATEGORY DROPDOWN
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "CATEGORY",
@@ -277,15 +455,11 @@ private fun IncidentHeaderCard(
                     letterSpacing = 0.8.sp
                 )
 
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
-                ) {
-                    // This is the anchor for the dropdown (Surface/Row)
+                Box {
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
+                            .clickable { expanded = true },
                         shape = RoundedCornerShape(12.dp),
                         color = Color(0xFFF9FAFB),
                         border = BorderStroke(1.dp, Color(0xFFE5E7EB))
@@ -293,13 +467,13 @@ private fun IncidentHeaderCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { expanded = true }
                                 .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = selectedCategory?.let { formatCategoryText(it.name) } ?: "Select Category",
+                                text = selectedCategory?.let { formatCategoryText(it.name) }
+                                    ?: "Select Category",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF111827)
@@ -312,10 +486,10 @@ private fun IncidentHeaderCard(
                         }
                     }
 
-                    // This is the actual dropdown menu (not DropdownMenu)
-                    ExposedDropdownMenu(
+                    DropdownMenu(
                         expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         IncidentCategory.entries.forEach { category ->
                             DropdownMenuItem(
@@ -328,10 +502,9 @@ private fun IncidentHeaderCard(
                         }
                     }
                 }
-
             }
 
-            // Status Badge
+            // STATUS
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = getStatusColor(incident.status).copy(alpha = 0.12f)

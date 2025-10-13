@@ -24,10 +24,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.incidentscompose.R
 import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
@@ -258,7 +260,24 @@ fun MyIncidentListScreen(
                 ) {
                     Column {
                         DropdownMenuItem(
-                            text = { Text("Details", color = Color(0xFF1976D2)) },
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.userprofile),
+                                        contentDescription = "User profile",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        "Details",
+                                        color = Color.Black,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            },
                             onClick = { isDropdownVisible = false },
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
@@ -266,7 +285,25 @@ fun MyIncidentListScreen(
                         HorizontalDivider(color = Color(0xFFEEEEEE))
 
                         DropdownMenuItem(
-                            text = { Text("Logout", color = Color(0xFFD32F2F)) },
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.logout),
+                                        contentDescription = "Logout",
+                                        tint = Color(0xFFD32F2F),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        "Logout",
+                                        color = Color(0xFFD32F2F),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            },
                             onClick = {
                                 isDropdownVisible = false
                                 viewModel.logout()

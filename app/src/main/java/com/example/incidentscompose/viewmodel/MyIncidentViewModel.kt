@@ -37,6 +37,9 @@ class MyIncidentViewModel(
     private val _updateResult = MutableStateFlow<Result<IncidentResponse>?>(null)
     val updateResult: StateFlow<Result<IncidentResponse>?> = _updateResult.asStateFlow()
 
+    private val _deleteResult = MutableStateFlow<Result<Unit>?>(null)
+    val deleteResult: StateFlow<Result<Unit>?> = _deleteResult.asStateFlow()
+
     init {
         loadUserData()
     }
@@ -146,6 +149,23 @@ class MyIncidentViewModel(
 
     fun resetUpdateResult() {
         _updateResult.value = null
+    }
+
+    fun deleteIncident(incidentId: Long) {
+        viewModelScope.launch {
+            withLoading {
+                try {
+                    val result = incidentRepository.deleteIncident(incidentId)
+                    _deleteResult.value = result
+                } catch (e: Exception) {
+                    _deleteResult.value = Result.failure(e)
+                }
+            }
+        }
+    }
+
+    fun resetDeleteResult() {
+        _deleteResult.value = null
     }
 
     fun saveSelectedIncident(incident: IncidentResponse) {
