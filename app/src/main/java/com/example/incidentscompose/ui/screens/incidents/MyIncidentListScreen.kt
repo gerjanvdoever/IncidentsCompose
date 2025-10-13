@@ -38,7 +38,10 @@ import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryTex
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
 import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
+import java.net.URLEncoder
 
 @Composable
 fun MyIncidentListScreen(
@@ -300,14 +303,22 @@ fun MyIncidentListScreen(
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
-                                        "Details",
+                                        "Profile",
                                         color = Color.Black,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
                             },
-                            onClick = { isDropdownVisible = false },
+                            onClick = {
+                                isDropdownVisible = false
+                                user?.let { userData ->
+                                    val userJson = Json.encodeToString(userData)
+                                    val encodedUserJson = URLEncoder.encode(userJson, "UTF-8")
+                                    val route = Destinations.UserProfile.createRoute(encodedUserJson)
+                                    navController.navigate(route)
+                                }
+                            },
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
 

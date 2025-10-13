@@ -14,6 +14,7 @@ import com.example.incidentscompose.viewmodel.LoginViewModel
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
 import com.example.incidentscompose.viewmodel.RegisterViewModel
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
+import com.example.incidentscompose.viewmodel.UserViewModel
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -50,5 +51,6 @@ val appModule = module {
     viewModel { MyIncidentViewModel(authRepository = get(), incidentRepository = get(), incidentDataStore = get(), userRepository = get())}
     viewModel { RegisterViewModel(get())}
     viewModel { ReportIncidentViewModel(get())}
+    viewModel { UserViewModel(get())}
 
 }

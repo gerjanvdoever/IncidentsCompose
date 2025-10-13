@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.incidentscompose.ui.screens.auth.LoginScreen
 import com.example.incidentscompose.ui.screens.auth.RegisterScreen
+import com.example.incidentscompose.ui.screens.auth.UserProfileScreen
 import com.example.incidentscompose.ui.screens.incidents.MyIncidentListScreen
 import com.example.incidentscompose.ui.screens.incidents.ReportIncidentScreen
 import com.example.incidentscompose.ui.screens.incidents.MyIncidentDetailScreen
@@ -26,8 +27,15 @@ fun NavGraph(navController: NavHostController) {
         composable(Destinations.Register.route) {
             RegisterScreen(navController)
         }
-        composable(Destinations.UserProfile.route) {
-            TODO("Implement UserProfileScreen composable")
+        composable(
+            route = Destinations.UserProfile.route,
+            arguments = emptyList()
+        ) { backStackEntry ->
+            val userJson = backStackEntry.arguments?.getString("userJson")
+            UserProfileScreen(
+                navController = navController,
+                userJson = userJson
+            )
         }
         composable(Destinations.MyIncidentDetail.route) {
             MyIncidentDetailScreen(navController)

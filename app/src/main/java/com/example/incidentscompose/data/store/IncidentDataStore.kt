@@ -12,7 +12,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.example.incidentscompose.data.model.IncidentResponse
 
-// Separate DataStore for incidents
 val Context.incidentDataStore: DataStore<Preferences> by preferencesDataStore(name = "incident_data")
 
 class IncidentDataStore(private val context: Context) {
