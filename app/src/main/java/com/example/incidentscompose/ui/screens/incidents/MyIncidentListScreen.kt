@@ -58,13 +58,7 @@ fun MyIncidentListScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     var isDropdownVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
-
-    val tokenPreferences = koinInject<com.example.incidentscompose.data.store.TokenPreferences>()
-    var userRole by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        userRole = tokenPreferences.getUserRole()
-    }
+    val userRole by viewModel.userRole.collectAsState()
 
     LaunchedEffect(logoutEvent) {
         if (logoutEvent) {

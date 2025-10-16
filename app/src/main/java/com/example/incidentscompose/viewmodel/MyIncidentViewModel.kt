@@ -9,6 +9,7 @@ import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.data.store.IncidentDataStore
+import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,8 @@ class MyIncidentViewModel(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val incidentRepository: IncidentRepository,
-    private val incidentDataStore: IncidentDataStore
+    private val incidentDataStore: IncidentDataStore,
+    private val tokenPreferences: TokenPreferences
 ) : BaseViewModel() {
 
     private val _user = MutableStateFlow<UserResponse?>(null)
@@ -40,8 +42,18 @@ class MyIncidentViewModel(
     private val _deleteResult = MutableStateFlow<Result<Unit>?>(null)
     val deleteResult: StateFlow<Result<Unit>?> = _deleteResult.asStateFlow()
 
+    private val _userRole = MutableStateFlow<String?>(null)
+    val userRole: StateFlow<String?> = _userRole.asStateFlow()
+
     init {
         loadUserData()
+        loadUserRole()
+    }
+
+    private fun loadUserRole() {
+        viewModelScope.launch {
+            _userRole.value = tokenPreferences.getUserRole()
+        }
     }
 
     private fun loadUserData() {
@@ -132,12 +144,10 @@ class MyIncidentViewModel(
                     _updateResult.value = result
 
                     if (result.isSuccess) {
-                        // Update the selected incident in the data store
                         result.getOrNull()?.let { updatedIncident ->
                             incidentDataStore.saveSelectedIncident(updatedIncident)
                         }
 
-                        // Refresh the incidents list
                         refreshIncidents()
                     }
                 } catch (e: Exception) {

@@ -12,6 +12,7 @@ import com.example.incidentscompose.viewmodel.LoginViewModel
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
 import com.example.incidentscompose.viewmodel.RegisterViewModel
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
+import com.example.incidentscompose.viewmodel.UserManagementViewModel
 import com.example.incidentscompose.viewmodel.UserViewModel
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -43,9 +44,10 @@ val dataModule = module {
 
 val viewModelModule = module {
     viewModel { LoginViewModel(get()) }
-    viewModel { MyIncidentViewModel(get(), get(), get(), get()) }
+    viewModel { MyIncidentViewModel(get(), get(), get(), get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { ReportIncidentViewModel(get()) }
     viewModel { UserViewModel(get()) }
+    viewModel { UserManagementViewModel(get(), get())}
 }
 

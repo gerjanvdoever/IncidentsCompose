@@ -11,6 +11,7 @@ import com.example.incidentscompose.ui.screens.incidents.MyIncidentListScreen
 import com.example.incidentscompose.ui.screens.incidents.ReportIncidentScreen
 import com.example.incidentscompose.ui.screens.incidents.MyIncidentDetailScreen
 import com.example.incidentscompose.ui.screens.management.IncidentListScreen
+import com.example.incidentscompose.ui.screens.management.UserManagementScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -53,7 +54,7 @@ fun NavGraph(navController: NavHostController) {
             TODO("Implement IncidentMapScreen composable")
         }
         composable(Destinations.UserManagement.route) {
-            TODO("Implement UserManagementScreen composable")
+            UserManagementScreen(navController)
         }
     }
 }
