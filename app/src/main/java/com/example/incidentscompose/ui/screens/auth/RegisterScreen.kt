@@ -12,10 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.incidentscompose.R
 import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.IncidentsTextField
 import com.example.incidentscompose.ui.components.LoadingOverlay
@@ -42,7 +44,7 @@ fun RegisterScreen(
             is RegisterState.Success -> {
                 Toast.makeText(
                     context,
-                    "Registration successful! You can now log in.",
+                    context.getString(R.string.registration_successful_you_can_now_log_in),
                     Toast.LENGTH_LONG
                 ).show()
 
@@ -78,9 +80,8 @@ fun RegisterScreen(
                 Column(
                     modifier = Modifier.padding(30.dp)
                 ) {
-                    // Title
                     Text(
-                        text = "Create Account",
+                        text = stringResource(R.string.create_account),
                         fontSize = 24.sp,
                         color = Color(0xFF0D47A1),
                         textAlign = TextAlign.Center,
@@ -97,13 +98,12 @@ fun RegisterScreen(
                                 viewModel.clearRegisterState()
                             }
                         },
-                        placeholder = "Username",
+                        placeholder = stringResource(R.string.username),
                         isError = registerState is RegisterState.Error
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Email field
                     IncidentsTextField(
                         value = email,
                         onValueChange = {
@@ -112,13 +112,12 @@ fun RegisterScreen(
                                 viewModel.clearRegisterState()
                             }
                         },
-                        placeholder = "Email",
+                        placeholder = stringResource(R.string.email),
                         isError = registerState is RegisterState.Error
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Password field
                     IncidentsTextField(
                         value = password,
                         onValueChange = {
@@ -127,7 +126,7 @@ fun RegisterScreen(
                                 viewModel.clearRegisterState()
                             }
                         },
-                        placeholder = "Password",
+                        placeholder = stringResource(R.string.password),
                         isPassword = true,
                         isError = registerState is RegisterState.Error
                     )
@@ -142,7 +141,7 @@ fun RegisterScreen(
                                 viewModel.clearRegisterState()
                             }
                         },
-                        placeholder = "Confirm Password",
+                        placeholder = stringResource(R.string.confirm_password),
                         isPassword = true,
                         isError = registerState is RegisterState.Error
                     )
@@ -174,13 +173,13 @@ fun RegisterScreen(
                         enabled = !isBusy && username.isNotBlank() && password.isNotBlank() &&
                                 email.isNotBlank() && confirmPassword.isNotBlank()
                     ) {
-                        Text("Register")
+                        Text(stringResource(R.string.register))
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "Already have an account? Login here",
+                        text = stringResource(R.string.already_have_an_account_login_here),
                         fontSize = 14.sp,
                         color = Color(0xFF0D47A1),
                         textAlign = TextAlign.Center,

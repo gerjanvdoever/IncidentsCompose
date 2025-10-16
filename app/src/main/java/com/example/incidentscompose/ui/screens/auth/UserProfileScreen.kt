@@ -24,6 +24,8 @@ import org.koin.androidx.compose.koinViewModel
 import java.net.URLDecoder
 import android.widget.Toast
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.stringResource
+import com.example.incidentscompose.R
 
 @Composable
 fun UserProfileScreen(
@@ -62,7 +64,8 @@ fun UserProfileScreen(
 
     LaunchedEffect(updateSuccess) {
         if (updateSuccess) {
-            Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_LONG).show()
+            Toast.makeText(context,
+                context.getString(R.string.profile_updated_successfully), Toast.LENGTH_LONG).show()
             navController.navigate(Destinations.MyIncidentList.route) {
                 popUpTo(Destinations.MyIncidentList.route) { inclusive = true }
             }
@@ -80,7 +83,7 @@ fun UserProfileScreen(
         Scaffold(
             topBar = {
                 TopNavBar(
-                    title = "Edit Profile",
+                    title = stringResource(R.string.edit_profile),
                     showBackButton = true,
                     onBackClick = { navController.popBackStack() },
                     backgroundColor = MaterialTheme.colorScheme.surface,
@@ -102,7 +105,7 @@ fun UserProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Personal Information",
+                        text = stringResource(R.string.personal_information),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold,
@@ -124,13 +127,13 @@ fun UserProfileScreen(
                             IncidentsTextField(
                                 value = username,
                                 onValueChange = { username = it },
-                                placeholder = "Username"
+                                placeholder = stringResource(R.string.username)
                             )
 
                             IncidentsTextField(
                                 value = email,
                                 onValueChange = { email = it },
-                                placeholder = "Email"
+                                placeholder = stringResource(R.string.email)
                             )
                         }
                     }
@@ -145,7 +148,7 @@ fun UserProfileScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Security",
+                            text = stringResource(R.string.security),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Bold
@@ -165,7 +168,7 @@ fun UserProfileScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Text(
-                                text = "Leave blank to keep current password",
+                                text = stringResource(R.string.leave_blank_to_keep_current_password),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -173,7 +176,7 @@ fun UserProfileScreen(
                             IncidentsTextField(
                                 value = currentPassword,
                                 onValueChange = { currentPassword = it },
-                                placeholder = "Current password",
+                                placeholder = stringResource(R.string.current_password),
                                 isPassword = true
                             )
 
@@ -185,14 +188,14 @@ fun UserProfileScreen(
                             IncidentsTextField(
                                 value = newPassword,
                                 onValueChange = { newPassword = it },
-                                placeholder = "New password",
+                                placeholder = stringResource(R.string.new_password),
                                 isPassword = true
                             )
 
                             IncidentsTextField(
                                 value = confirmPassword,
                                 onValueChange = { confirmPassword = it },
-                                placeholder = "Confirm new password",
+                                placeholder = stringResource(R.string.confirm_new_password),
                                 isPassword = true
                             )
                         }
@@ -235,7 +238,7 @@ fun UserProfileScreen(
                         )
                     ) {
                         Text(
-                            text = "Save Changes",
+                            text = stringResource(R.string.save_changes),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.5.sp

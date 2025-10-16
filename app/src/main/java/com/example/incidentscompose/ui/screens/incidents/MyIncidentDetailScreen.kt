@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -80,13 +81,13 @@ fun MyIncidentDetailScreen(
             if (result.isSuccess) {
                 Toast.makeText(
                     context,
-                    "Incident updated successfully",
+                    context.getString(R.string.incident_updated_successfully),
                     Toast.LENGTH_LONG
                 ).show()
             } else {
                 Toast.makeText(
                     context,
-                    "Failed to update incident: ${result.exceptionOrNull()?.message}",
+                    context.getString(R.string.failed_to_update_incident) + " ${result.exceptionOrNull()?.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -99,7 +100,7 @@ fun MyIncidentDetailScreen(
             if (result.isSuccess) {
                 Toast.makeText(
                     context,
-                    "Incident deleted successfully",
+                    context.getString(R.string.incident_deleted_successfully),
                     Toast.LENGTH_LONG
                 ).show()
                 viewModel.refreshIncidents()
@@ -107,7 +108,7 @@ fun MyIncidentDetailScreen(
             } else {
                 Toast.makeText(
                     context,
-                    "Failed to delete incident: ${result.exceptionOrNull()?.message}",
+                    context.getString(R.string.failed_to_delete_incident) + " ${result.exceptionOrNull()?.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -135,14 +136,14 @@ fun MyIncidentDetailScreen(
             },
             title = {
                 Text(
-                    text = "Incident Already Resolved",
+                    text = stringResource(R.string.incident_already_resolved),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
             },
             text = {
                 Text(
-                    text = "This incident has been marked as resolved and can no longer be modified.",
+                    text = stringResource(R.string.this_incident_has_been_marked_as_resolved_and_can_no_longer_be_modified),
                     fontSize = 15.sp,
                     lineHeight = 22.sp
                 )
@@ -176,14 +177,14 @@ fun MyIncidentDetailScreen(
             },
             title = {
                 Text(
-                    text = "Cannot Delete Incident",
+                    text = stringResource(R.string.cannot_delete_incident),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
             },
             text = {
                 Text(
-                    text = "Incidents that are assigned or resolved cannot be deleted.",
+                    text = stringResource(R.string.incidents_that_are_assigned_or_resolved_cannot_be_deleted),
                     fontSize = 15.sp,
                     lineHeight = 22.sp
                 )
@@ -217,14 +218,14 @@ fun MyIncidentDetailScreen(
             },
             title = {
                 Text(
-                    text = "Delete Incident?",
+                    text = stringResource(R.string.delete_incident),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
             },
             text = {
                 Text(
-                    text = "Are you sure you want to delete this incident? This action cannot be undone.",
+                    text = stringResource(R.string.are_you_sure_you_want_to_delete_this_incident_this_action_cannot_be_undone),
                     fontSize = 15.sp,
                     lineHeight = 22.sp
                 )
@@ -266,7 +267,7 @@ fun MyIncidentDetailScreen(
     Scaffold(
         topBar = {
             TopNavBar(
-                title = "Incident Details",
+                title = stringResource(R.string.incident_details),
                 showBackButton = true,
                 onBackClick = { navController.popBackStack() },
                 backgroundColor = MaterialTheme.colorScheme.surface,
@@ -288,7 +289,7 @@ fun MyIncidentDetailScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Incident details not available",
+                        text = stringResource(R.string.incident_details_not_available),
                         color = Color(0xFF6B7280),
                         fontSize = 16.sp
                     )
@@ -395,7 +396,7 @@ private fun ActionButtons(
             )
         ) {
             Text(
-                text = "Save Changes",
+                text = stringResource(R.string.save_changes),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White
@@ -414,7 +415,7 @@ private fun ActionButtons(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.delete),
-                contentDescription = "Delete incident",
+                contentDescription = stringResource(R.string.delete_incident),
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -448,7 +449,7 @@ private fun IncidentHeaderCard(
             // CATEGORY DROPDOWN
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "CATEGORY",
+                    text = stringResource(R.string.category),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF6B7280),
@@ -473,7 +474,7 @@ private fun IncidentHeaderCard(
                         ) {
                             Text(
                                 text = selectedCategory?.let { formatCategoryText(it.name) }
-                                    ?: "Select Category",
+                                    ?: stringResource(R.string.select_category),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF111827)
@@ -583,7 +584,9 @@ private fun IncidentHeaderCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = if (incident.completedAt != null) "COMPLETED" else "PENDING",
+                            text = if (incident.completedAt != null) stringResource(R.string.completed) else stringResource(
+                                R.string.pending
+                            ),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF6B7280),
@@ -591,7 +594,8 @@ private fun IncidentHeaderCard(
                         )
                     }
                     Text(
-                        text = incident.completedAt?.let { formatDateForDisplay(it) } ?: "Not completed",
+                        text = incident.completedAt?.let { formatDateForDisplay(it) } ?: stringResource(
+                            R.string.not_completed),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF111827)
@@ -624,7 +628,7 @@ private fun IncidentDescriptionCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "DESCRIPTION",
+                text = stringResource(R.string.description),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF6B7280),
@@ -681,7 +685,7 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "PHOTOS",
+                    text = stringResource(R.string.photos),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF6B7280),
@@ -715,7 +719,7 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
                         ) {
                             AsyncImage(
                                 model = imageUrl,
-                                contentDescription = "Incident image ${index + 1}",
+                                contentDescription = stringResource(R.string.incident_image) + " ${index + 1}",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
@@ -734,7 +738,7 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No photos available",
+                        text = stringResource(R.string.no_photos_available),
                         fontSize = 14.sp,
                         color = Color(0xFF9CA3AF),
                         fontWeight = FontWeight.Medium
@@ -774,7 +778,7 @@ private fun IncidentLocationCard(incident: IncidentResponse) {
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = "LOCATION",
+                    text = stringResource(R.string.location),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF6B7280),

@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.LoadingOverlay
@@ -64,7 +66,7 @@ fun ReportIncidentScreen(
         Scaffold(
             topBar = {
                 TopNavBar(
-                    title = "Report Incident",
+                    title = stringResource(R.string.report_incident),
                     showBackButton = true,
                     onBackClick = { navController.popBackStack() },
                 )
@@ -101,7 +103,6 @@ fun ReportIncidentScreen(
                     onUseCurrentLocation = { viewModel.useCurrentLocation() }
                 )
 
-                // Error message section - only shown when there's an error
                 if (!uiState.errorMessage.isNullOrBlank()) {
                     Card(
                         modifier = Modifier
@@ -137,7 +138,7 @@ fun ReportIncidentScreen(
                     enabled = !uiState.isLoading
                 ) {
                     Text(
-                        "Submit Report",
+                        stringResource(R.string.submit_report),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -173,13 +174,13 @@ fun MapLocationCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Where did you observe this?",
+                    text = stringResource(R.string.where_did_you_observe_this),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Tap on the map to mark the exact location",
+                    text = stringResource(R.string.tap_on_the_map_to_mark_the_exact_location),
                     fontSize = 13.sp,
                     color = Color(0xFF656D76)
                 )
@@ -203,7 +204,7 @@ fun MapLocationCard(
                     ) {
                         Column {
                             Text(
-                                text = "Selected Location",
+                                text = stringResource(R.string.selected_location),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFF0369A1)
@@ -228,7 +229,7 @@ fun MapLocationCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Map goes here",
+                    text = stringResource(R.string.map_goes_here),
                     fontSize = 16.sp,
                     color = Color(0xFF656D76)
                 )
@@ -254,7 +255,7 @@ fun MapLocationCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Use Sample Location",
+                    stringResource(R.string.use_sample_location),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -285,13 +286,13 @@ fun WarningBanner() {
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "Suspicious Activity or Emergency?",
+                    text = stringResource(R.string.suspicious_activity_or_emergency),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF92400E)
                 )
                 Text(
-                    text = "For immediate danger, call emergency services!",
+                    text = stringResource(R.string.for_immediate_danger_call_emergency_services),
                     fontSize = 13.sp,
                     color = Color(0xFFA16207)
                 )
@@ -321,7 +322,7 @@ fun CategorySelectionCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "What type of incident is this?",
+                text = stringResource(R.string.what_type_of_incident_is_this),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -350,11 +351,11 @@ fun CategorySelectionCard(
 
             Text(
                 text = when (selectedCategory) {
-                    IncidentCategory.CRIME -> "Illegal activities and safety threats"
-                    IncidentCategory.ENVIRONMENT -> "Nature, pollution and conservation issues"
-                    IncidentCategory.COMMUNAL -> "Shared spaces and neighborhood quality of life"
-                    IncidentCategory.TRAFFIC -> "Roads, vehicles and transportation safety"
-                    IncidentCategory.OTHER -> "Any issue that doesn't fit the other categories"
+                    IncidentCategory.CRIME -> stringResource(R.string.illegal_activities_and_safety_threats)
+                    IncidentCategory.ENVIRONMENT -> stringResource(R.string.nature_pollution_and_conservation_issues)
+                    IncidentCategory.COMMUNAL -> stringResource(R.string.shared_spaces_and_neighborhood_quality_of_life)
+                    IncidentCategory.TRAFFIC -> stringResource(R.string.roads_vehicles_and_transportation_safety)
+                    IncidentCategory.OTHER -> stringResource(R.string.any_issue_that_doesn_t_fit_the_other_categories)
                 },
                 fontSize = 13.sp,
                 color = Color(0xFF656D76)

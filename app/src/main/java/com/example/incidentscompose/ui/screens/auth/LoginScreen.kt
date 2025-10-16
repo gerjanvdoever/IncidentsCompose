@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -108,7 +109,7 @@ fun LoginScreen(
                                 viewModel.clearLoginState()
                             }
                         },
-                        placeholder = "Username",
+                        placeholder = stringResource(R.string.username),
                         isError = loginState is LoginState.Error
                     )
 
@@ -122,7 +123,7 @@ fun LoginScreen(
                                 viewModel.clearLoginState()
                             }
                         },
-                        placeholder = "Password",
+                        placeholder = stringResource(R.string.password),
                         isPassword = true,
                         isError = loginState is LoginState.Error
                     )
@@ -148,7 +149,7 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoggingIn.value && username.isNotBlank() && password.isNotBlank()
                     ) {
-                        Text("Login")
+                        Text(stringResource(R.string.login))
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -159,13 +160,13 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoggingIn.value
                     ) {
-                        Text("Report anonymously")
+                        Text(stringResource(R.string.report_anonymously))
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "Don't have an account? Register here",
+                        text = stringResource(R.string.don_t_have_an_account_register_here),
                         fontSize = 14.sp,
                         color = Color(0xFF0D47A1),
                         textAlign = TextAlign.Center,

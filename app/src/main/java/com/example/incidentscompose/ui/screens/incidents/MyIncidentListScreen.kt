@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import android.provider.Settings
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -58,7 +59,6 @@ fun MyIncidentListScreen(
     var isDropdownVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Get user role from token
     val tokenPreferences = koinInject<com.example.incidentscompose.data.store.TokenPreferences>()
     var userRole by remember { mutableStateOf<String?>(null) }
 
@@ -75,7 +75,7 @@ fun MyIncidentListScreen(
         }
     }
 
-    val fullName = user?.username ?: "Loading..."
+    val fullName = user?.username ?: stringResource(R.string.loading)
     val totalIncidents = incidents.size
     val activeIncidents = incidents.count { it.status.lowercase() == "reported" || it.status.lowercase() == "assigned" }
 
@@ -113,7 +113,6 @@ fun MyIncidentListScreen(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
-                // Gradient Header
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -163,7 +162,7 @@ fun MyIncidentListScreen(
                                 color = Color.White
                             )
                             Text(
-                                text = "Account Dashboard",
+                                text = stringResource(R.string.account_dashboard),
                                 fontSize = 14.sp,
                                 color = Color.White.copy(alpha = 0.8f)
                             )
@@ -195,21 +194,21 @@ fun MyIncidentListScreen(
                 ) {
                     StatCard(
                         modifier = Modifier.weight(1f),
-                        title = "Total Incidents",
+                        title = stringResource(R.string.total_incidents),
                         value = totalIncidents.toString(),
                         valueColor = Color(0xFF0D47A1)
                     )
 
                     StatCard(
                         modifier = Modifier.weight(1f),
-                        title = "Active",
+                        title = stringResource(R.string.active),
                         value = activeIncidents.toString(),
                         valueColor = Color(0xFFFF6B35)
                     )
                 }
 
                 Text(
-                    text = "My incidents",
+                    text = stringResource(R.string.my_incidents),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
@@ -224,7 +223,7 @@ fun MyIncidentListScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No incidents found.",
+                            text = stringResource(R.string.no_incidents_found),
                             color = Color.Gray,
                             fontSize = 16.sp
                         )
@@ -261,7 +260,7 @@ fun MyIncidentListScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Create Incident",
+                    contentDescription = stringResource(R.string.create_incident),
                     tint = Color.White,
                     modifier = Modifier.size(28.dp)
                 )
@@ -306,7 +305,7 @@ fun MyIncidentListScreen(
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
-                                        "Profile",
+                                        stringResource(R.string.profile),
                                         color = Color.Black,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Medium
@@ -339,7 +338,7 @@ fun MyIncidentListScreen(
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
-                                        "Language",
+                                        stringResource(R.string.language),
                                         color = Color.Black,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Medium
@@ -369,7 +368,7 @@ fun MyIncidentListScreen(
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
-                                        "Logout",
+                                        stringResource(R.string.logout),
                                         color = Color(0xFFD32F2F),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Medium
