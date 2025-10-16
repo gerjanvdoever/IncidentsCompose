@@ -36,6 +36,7 @@ import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
+import com.example.incidentscompose.util.IncidentCategoryUtils
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
 import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
@@ -50,11 +51,9 @@ fun MyIncidentDetailScreen(
     var incident by remember { mutableStateOf<IncidentResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Editable fields
     var selectedCategory by remember { mutableStateOf<IncidentCategory?>(null) }
     var editableDescription by remember { mutableStateOf("") }
 
-    // Dialog states
     var showResolvedDialog by remember { mutableStateOf(false) }
     var showCannotDeleteDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -69,7 +68,7 @@ fun MyIncidentDetailScreen(
         selectedIncidentFlow.collect { selectedIncident ->
             incident = selectedIncident
             selectedIncident?.let {
-                selectedCategory = enumValueOf<IncidentCategory>(it.category)
+                selectedCategory = IncidentCategoryUtils.safeValueOf(it.category)
                 editableDescription = it.description
             }
             isLoading = false

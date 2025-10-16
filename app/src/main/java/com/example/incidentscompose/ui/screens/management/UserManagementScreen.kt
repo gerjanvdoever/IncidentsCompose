@@ -349,7 +349,6 @@ fun UserCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // User Avatar
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = CircleShape,
@@ -393,10 +392,12 @@ fun UserCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Role Dropdown
-            Box {
+            Box(
+                modifier = Modifier.width(120.dp)
+            ) {
                 Surface(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
                         .clickable { expanded = true },
                     color = getRoleColor(selectedRole),
@@ -404,13 +405,17 @@ fun UserCard(
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
                             text = selectedRole,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
                         )
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
@@ -423,12 +428,14 @@ fun UserCard(
 
                 DropdownMenu(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.width(120.dp)
                 ) {
                     Role.entries.forEach { role ->
                         DropdownMenuItem(
                             text = {
                                 Row(
+                                    modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Box(
@@ -440,7 +447,12 @@ fun UserCard(
                                             )
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(role.name)
+                                    Text(
+                                        text = role.name,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                             },
                             onClick = {
