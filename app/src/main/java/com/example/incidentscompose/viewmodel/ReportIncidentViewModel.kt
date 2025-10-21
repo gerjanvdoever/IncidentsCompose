@@ -1,16 +1,18 @@
 package com.example.incidentscompose.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.viewModelScope
 import com.example.incidentscompose.data.model.CreateIncidentRequest
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.ui.states.BaseViewModel
+import com.example.incidentscompose.util.PhotoUtils
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 data class ReportIncidentUiState(
     val selectedCategory: IncidentCategory = IncidentCategory.COMMUNAL,
@@ -18,110 +20,113 @@ data class ReportIncidentUiState(
     val photos: List<String> = emptyList(),
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val showSuccessDialog: Boolean = false,
-    val createdIncident: IncidentResponse? = null
+    val createdIncident: IncidentResponse? = null,
+    val showPermissionDeniedWarning: Boolean = false,
+    val showImageSourceDialog: Boolean = false,
+    val hasPermissions: Boolean = false
 )
 
 class ReportIncidentViewModel(
-    private val incidentRepository: IncidentRepository
+    private val repository: IncidentRepository
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(ReportIncidentUiState())
-    val uiState: StateFlow<ReportIncidentUiState> = _uiState.asStateFlow()
+    val uiState = _uiState.asStateFlow()
 
-    fun updateCategory(category: IncidentCategory) {
+    fun updateCategory(category: IncidentCategory) =
         _uiState.update { it.copy(selectedCategory = category) }
-    }
 
-    fun updateDescription(description: String) {
+    fun updateDescription(description: String) =
         _uiState.update { it.copy(description = description) }
-    }
 
-    fun addPhoto() {
-        // TODO: Implement actual photo picker
-        viewModelScope.launch {
-            val currentPhotos = _uiState.value.photos
-            _uiState.update {
-                it.copy(photos = currentPhotos + "photo_${currentPhotos.size + 1}")
-            }
-        }
-    }
+    fun addPhoto(uri: String) =
+        _uiState.update { it.copy(photos = it.photos + uri) }
 
-    fun removePhoto(photoUri: String) {
-        _uiState.update {
-            it.copy(photos = it.photos.filter { photo -> photo != photoUri })
-        }
-    }
+    fun removePhoto(uri: String) =
+        _uiState.update { it.copy(photos = it.photos - uri) }
 
     fun useCurrentLocation() {
-        // VOOR NU NOG EVEN HARDCODED LAT LONG GEBRUIKEN
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    latitude = 51.9851,
-                    longitude = 5.5338
-                )
-            }
+        _uiState.update {
+            it.copy(latitude = 51.9851, longitude = 5.5338)
         }
     }
 
-    fun submitReport() {
+    fun updatePermissions(granted: Boolean) {
+        _uiState.update { it.copy(hasPermissions = granted) }
+        if (!granted) showPermissionDeniedWarning()
+    }
+
+    private fun showPermissionDeniedWarning() =
+        _uiState.update { it.copy(showPermissionDeniedWarning = true) }
+
+    fun dismissPermissionWarning() =
+        _uiState.update { it.copy(showPermissionDeniedWarning = false) }
+
+    fun showImageSourceDialog() =
+        _uiState.update { it.copy(showImageSourceDialog = true) }
+
+    fun dismissImageSourceDialog() =
+        _uiState.update { it.copy(showImageSourceDialog = false) }
+
+    fun submitReport(context: Context) {
         val state = _uiState.value
 
-        if (state.description.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Please enter a description") }
-            return
-        }
+        when {
+            state.description.isBlank() -> {
+                _uiState.update { it.copy(errorMessage = "Please enter a description") }
+                return
+            }
 
-        if (state.latitude == null || state.longitude == null) {
-            _uiState.update { it.copy(errorMessage = "Please select a location") }
-            return
+            state.latitude == null || state.longitude == null -> {
+                _uiState.update { it.copy(errorMessage = "Please select a location") }
+                return
+            }
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            withLoading {
+                runCatching {
+                    val request = CreateIncidentRequest(
+                        category = state.selectedCategory.name,
+                        description = state.description,
+                        latitude = state.latitude,
+                        longitude = state.longitude,
+                        priority = "LOW"
+                    )
 
-            try {
-                val createRequest = CreateIncidentRequest(
-                    category = state.selectedCategory.name,
-                    description = state.description,
-                    latitude = state.latitude,
-                    longitude = state.longitude,
-                    priority = "LOW"
-                )
+                    val incident = repository.createIncident(request).getOrThrow()
 
-                val result = incidentRepository.createIncident(createRequest)
+                    state.photos.forEach { uriString ->
+                        val file = PhotoUtils.getFileFromUri(context, uriString.toUri())
+                        if (file != null) {
+                            repository.uploadImageToIncident(
+                                incidentId = incident.id,
+                                imageFile = file,
+                                description = ""
+                            )
+                        }
+                    }
 
-                if (result.isSuccess) {
-                    val createdIncident = result.getOrThrow()
                     _uiState.update {
                         it.copy(
                             showSuccessDialog = true,
-                            createdIncident = createdIncident
+                            createdIncident = incident,
+                            errorMessage = null
                         )
                     }
-                } else {
+                }.onFailure { e ->
                     _uiState.update {
                         it.copy(
-                            errorMessage = "Failed to submit report: ${result.exceptionOrNull()?.message}"
+                            errorMessage = e.message ?: "Failed to submit report"
                         )
                     }
                 }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        errorMessage = "Failed to submit report: ${e.message}"
-                    )
-                }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
 
-    fun dismissSuccessDialog() {
+    fun dismissSuccessDialog() =
         _uiState.update { it.copy(showSuccessDialog = false) }
-    }
 }

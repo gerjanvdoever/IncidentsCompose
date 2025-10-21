@@ -1,5 +1,10 @@
 package com.example.incidentscompose.ui.screens.incidents
 
+import android.Manifest
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,6 +19,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,8 +42,10 @@ import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
+import com.example.incidentscompose.util.PhotoUtils
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
 import org.koin.androidx.compose.koinViewModel
+import androidx.core.net.toUri
 
 @Composable
 fun ReportIncidentScreen(
@@ -44,6 +53,96 @@ fun ReportIncidentScreen(
     viewModel: ReportIncidentViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isLoading by viewModel.isBusy.collectAsState()
+    val context = LocalContext.current
+
+    // Permission launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allRequiredGranted = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val hasCamera = permissions[Manifest.permission.CAMERA] == true
+            val hasFullImageAccess = permissions[Manifest.permission.READ_MEDIA_IMAGES] == true
+            val hasSelectedAccess = permissions[Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED] == true
+
+            hasCamera && (hasFullImageAccess || hasSelectedAccess)
+        } else {
+            permissions.values.all { it }
+        }
+
+        viewModel.updatePermissions(allRequiredGranted)
+    }
+
+    // Request permissions on first composition
+    LaunchedEffect(Unit) {
+        val hasPermissions = PhotoUtils.hasAllPermissions(context)
+        viewModel.updatePermissions(hasPermissions)
+
+        if (!hasPermissions) {
+            permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
+        }
+    }
+
+    // Photo picker launcher
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let { viewModel.addPhoto(it.toString()) }
+    }
+
+    var currentCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            currentCameraUri?.let { viewModel.addPhoto(it.toString()) }
+        }
+        currentCameraUri = null
+    }
+
+    LaunchedEffect(uiState.showImageSourceDialog) {
+        if (uiState.showImageSourceDialog) {
+            if (uiState.hasPermissions) {
+                // Dialog will be shown — wait for user selection
+            } else {
+                permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
+                viewModel.dismissImageSourceDialog()
+            }
+        }
+    }
+
+    if (uiState.showImageSourceDialog) {
+        ImageSourceDialog(
+            onDismiss = { viewModel.dismissImageSourceDialog() },
+            onCameraClick = {
+                viewModel.dismissImageSourceDialog()
+                if (uiState.hasPermissions) {
+                    val imageUri = PhotoUtils.createImageUri(context)
+                    currentCameraUri = imageUri // Store the URI
+                    cameraLauncher.launch(imageUri)
+                } else {
+                    permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
+                }
+            },
+            onGalleryClick = {
+                viewModel.dismissImageSourceDialog()
+                if (uiState.hasPermissions) {
+                    photoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                } else {
+                    permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
+                }
+            }
+        )
+    }
+
+    if (uiState.showPermissionDeniedWarning) {
+        PermissionDeniedDialog(
+            onDismiss = { viewModel.dismissPermissionWarning() }
+        )
+    }
 
     if (uiState.showSuccessDialog) {
         ReportSuccessDialog(
@@ -62,6 +161,7 @@ fun ReportIncidentScreen(
             }
         )
     }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
@@ -92,9 +192,15 @@ fun ReportIncidentScreen(
                 )
 
                 PhotoUploadCard(
-                    photos = uiState.photos,
-                    onAddPhoto = { viewModel.addPhoto() },
-                    onRemovePhoto = { viewModel.removePhoto(it) }
+                    photos = uiState.photos.map { it.toUri() },
+                    onAddPhoto = {
+                        if (uiState.hasPermissions) {
+                            viewModel.showImageSourceDialog()
+                        } else {
+                            permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
+                        }
+                    },
+                    onRemovePhoto = { viewModel.removePhoto(it.toString()) }
                 )
 
                 MapLocationCard(
@@ -125,7 +231,9 @@ fun ReportIncidentScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.submitReport() },
+                    onClick = {
+                        viewModel.submitReport(context)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -135,7 +243,7 @@ fun ReportIncidentScreen(
                         containerColor = Color(0xFFDC2626),
                         contentColor = Color.White
                     ),
-                    enabled = !uiState.isLoading
+                    enabled = !isLoading
                 ) {
                     Text(
                         stringResource(R.string.submit_report),
@@ -147,7 +255,143 @@ fun ReportIncidentScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
-        LoadingOverlay(isLoading = uiState.isLoading)
+        LoadingOverlay(isLoading = isLoading)
+    }
+}
+
+@Composable
+fun ImageSourceDialog(
+    onDismiss: () -> Unit,
+    onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Add Photo",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Button(
+                    onClick = onCameraClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0969DA),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        "Take Photo",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Button(
+                    onClick = onGalleryClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0969DA),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        "Choose from Gallery",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cancel")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PermissionDeniedDialog(
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = "Warning",
+                    modifier = Modifier.size(64.dp),
+                    tint = Color(0xFFF59E0B)
+                )
+
+                Text(
+                    text = "Permission Required",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = "To add photos, please grant camera and storage permissions in your device settings.",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp
+                )
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0969DA),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        "OK",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -186,7 +430,6 @@ fun MapLocationCard(
                 )
             }
 
-            // Show selected coordinates if available
             if (latitude != null && longitude != null) {
                 Card(
                     modifier = Modifier
@@ -219,7 +462,6 @@ fun MapLocationCard(
                 }
             }
 
-            // Placeholder for map
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -364,7 +606,6 @@ fun CategorySelectionCard(
     }
 }
 
-
 @Composable
 fun DescriptionInputCard(
     description: String,
@@ -414,9 +655,9 @@ fun DescriptionInputCard(
 
 @Composable
 fun PhotoUploadCard(
-    photos: List<String>,
+    photos: List<Uri>,
     onAddPhoto: () -> Unit,
-    onRemovePhoto: (String) -> Unit
+    onRemovePhoto: (Uri) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -506,7 +747,6 @@ fun PhotoUploadCard(
                             contentScale = ContentScale.Crop
                         )
 
-                        // Delete button
                         Box(
                             modifier = Modifier
                                 .size(24.dp)
