@@ -36,6 +36,7 @@ import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
+import com.example.incidentscompose.util.ImageUrlHelper
 import com.example.incidentscompose.util.IncidentCategoryUtils
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
@@ -710,18 +711,33 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(incident.images.count()) { index ->
-                        val imageUrl = incident.images[index]
+                        val imageUrl = ImageUrlHelper.getFullImageUrl(incident.images[index])
                         Surface(
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.size(140.dp),
                             color = Color(0xFFF3F4F6)
                         ) {
-                            AsyncImage(
-                                model = imageUrl,
-                                contentDescription = stringResource(R.string.incident_image) + " ${index + 1}",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                            if (!imageUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = imageUrl,
+                                    contentDescription = stringResource(R.string.incident_image) + " ${index + 1}",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                // Fallback when no valid URL
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color(0xFFF3F4F6)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No image",
+                                        color = Color(0xFF9CA3AF)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
