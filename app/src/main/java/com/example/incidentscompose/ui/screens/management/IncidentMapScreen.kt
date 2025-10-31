@@ -1,6 +1,5 @@
 package com.example.incidentscompose.ui.screens.management
 
-import android.R.attr.text
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding

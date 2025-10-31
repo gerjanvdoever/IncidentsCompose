@@ -12,8 +12,8 @@ navigation = "2.7.3"
 koin = "3.5.0"
 ktor = "2.3.2"
 datastore = "1.0.0"
-serialization = "1.6.0"
-coil = "2.2.2"
+serialization = "1.9.0"
+coil = "2.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
