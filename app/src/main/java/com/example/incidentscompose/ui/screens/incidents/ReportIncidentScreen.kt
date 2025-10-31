@@ -118,9 +118,10 @@ fun ReportIncidentScreen(
             onCameraClick = {
                 viewModel.dismissImageSourceDialog()
                 if (uiState.hasPermissions) {
-                    val imageUri = PhotoUtils.createImageUri(context)
-                    currentCameraUri = imageUri // Store the URI
-                    cameraLauncher.launch(imageUri)
+                    PhotoUtils.createImageUri(context)?.let { uri ->
+                        currentCameraUri = uri
+                        cameraLauncher.launch(uri)
+                    }
                 } else {
                     permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
                 }

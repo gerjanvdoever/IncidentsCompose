@@ -42,6 +42,7 @@ import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryTex
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
 import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import java.net.URLEncoder
