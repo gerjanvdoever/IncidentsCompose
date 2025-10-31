@@ -10,7 +10,9 @@ import com.example.incidentscompose.ui.screens.auth.UserProfileScreen
 import com.example.incidentscompose.ui.screens.incidents.MyIncidentListScreen
 import com.example.incidentscompose.ui.screens.incidents.ReportIncidentScreen
 import com.example.incidentscompose.ui.screens.incidents.MyIncidentDetailScreen
+import com.example.incidentscompose.ui.screens.management.IncidentDetailScreen
 import com.example.incidentscompose.ui.screens.management.IncidentListScreen
+import com.example.incidentscompose.ui.screens.management.IncidentMapScreen
 import com.example.incidentscompose.ui.screens.management.UserManagementScreen
 
 @Composable
@@ -44,14 +46,15 @@ fun NavGraph(navController: NavHostController) {
         composable(Destinations.ReportIncident.route) {
             ReportIncidentScreen(navController)
         }
-        composable(Destinations.IncidentDetail.route) {
-            TODO("Implement IncidentDetailScreen composable")
+        composable(Destinations.IncidentDetail.route) { backStackEntry ->
+            val incidentId = backStackEntry.arguments?.getString("incidentId")?.toLongOrNull()
+            IncidentDetailScreen(navController = navController, incidentId = incidentId)
         }
         composable(Destinations.IncidentList.route) {
             IncidentListScreen(navController)
         }
         composable(Destinations.IncidentMap.route) {
-            TODO("Implement IncidentMapScreen composable")
+            IncidentMapScreen(navController)
         }
         composable(Destinations.UserManagement.route) {
             UserManagementScreen(navController)

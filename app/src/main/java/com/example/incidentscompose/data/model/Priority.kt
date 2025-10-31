@@ -4,5 +4,5 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class Priority {
-    LOW, MEDIUM, HIGH, CRITICAL
+    LOW, NORMAL, HIGH, CRITICAL
 }

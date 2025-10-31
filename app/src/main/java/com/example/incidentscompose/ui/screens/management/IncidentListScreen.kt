@@ -1,20 +1,14 @@
 package com.example.incidentscompose.ui.screens.management
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,12 +18,13 @@ import androidx.navigation.NavController
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.BottomNavBar
+import com.example.incidentscompose.ui.components.FilterDialog
 import com.example.incidentscompose.ui.components.LoadingOverlay
+import com.example.incidentscompose.ui.components.SearchAndFilterBar
 import com.example.incidentscompose.util.IncidentDisplayHelper
 import com.example.incidentscompose.viewmodel.IncidentManagementViewModel
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IncidentListScreen(
     navController: NavController,
@@ -38,14 +33,10 @@ fun IncidentListScreen(
     val unauthorizedState by viewModel.unauthorizedState.collectAsState()
     val userRole by viewModel.userRole.collectAsState()
     val isLoading by viewModel.isBusy.collectAsState()
-    val displayedIncidents by viewModel.displayedIncidents.collectAsState()
+    val filteredIncidents by viewModel.filteredIncidents.collectAsState()
     val showLoadMore by viewModel.showLoadMore.collectAsState()
 
-    var searchQuery by remember { mutableStateOf("") }
     var showFilterMenu by remember { mutableStateOf(false) }
-    var selectedPriorityFilter by remember { mutableStateOf<String?>(null) }
-    var selectedStatusFilter by remember { mutableStateOf<String?>(null) }
-    var selectedCategoryFilter by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(unauthorizedState) {
         if (unauthorizedState) {
@@ -55,25 +46,8 @@ fun IncidentListScreen(
         }
     }
 
-    val filteredIncidents = remember(displayedIncidents, searchQuery, selectedPriorityFilter, selectedStatusFilter, selectedCategoryFilter) {
-        displayedIncidents.filter { incident ->
-            val matchesSearch = searchQuery.isEmpty() ||
-                    incident.category.contains(searchQuery, ignoreCase = true) ||
-                    incident.description.contains(searchQuery, ignoreCase = true) ||
-                    incident.priority.contains(searchQuery, ignoreCase = true) ||
-                    incident.status.contains(searchQuery, ignoreCase = true)
-
-            val matchesPriority = selectedPriorityFilter == null ||
-                    incident.priority.equals(selectedPriorityFilter, ignoreCase = true)
-
-            val matchesStatus = selectedStatusFilter == null ||
-                    incident.status.equals(selectedStatusFilter, ignoreCase = true)
-
-            val matchesCategory = selectedCategoryFilter == null ||
-                    incident.category.equals(selectedCategoryFilter, ignoreCase = true)
-
-            matchesSearch && matchesPriority && matchesStatus && matchesCategory
-        }
+    LaunchedEffect(Unit) {
+        viewModel.refreshIncidents()
     }
 
     Scaffold(
@@ -99,14 +73,9 @@ fun IncidentListScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Search and Filter Section
                 SearchAndFilterBar(
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    onFilterClick = { showFilterMenu = true },
-                    hasActiveFilters = selectedPriorityFilter != null ||
-                            selectedStatusFilter != null ||
-                            selectedCategoryFilter != null
+                    viewModel = viewModel,
+                    onFilterClick = { showFilterMenu = true }
                 )
 
                 if (filteredIncidents.isEmpty() && !isLoading) {
@@ -121,15 +90,11 @@ fun IncidentListScreen(
                             IncidentCard(
                                 incident = incident,
                                 onClick = {
-                                    viewModel.onIncidentTap(incident)
-                                    TODO()
+                                    navController.navigate(Destinations.IncidentDetail.createRoute(incident.id))
                                 }
                             )
                         }
-
-                        if (showLoadMore && selectedPriorityFilter == null &&
-                            selectedStatusFilter == null && selectedCategoryFilter == null &&
-                            searchQuery.isEmpty()) {
+                        if (showLoadMore) {
                             item {
                                 Button(
                                     onClick = { viewModel.loadMoreIncidents() },
@@ -152,77 +117,11 @@ fun IncidentListScreen(
         }
     }
 
-    // Filter Dialog
     if (showFilterMenu) {
         FilterDialog(
-            selectedPriority = selectedPriorityFilter,
-            selectedStatus = selectedStatusFilter,
-            selectedCategory = selectedCategoryFilter,
-            onPrioritySelected = { selectedPriorityFilter = it },
-            onStatusSelected = { selectedStatusFilter = it },
-            onCategorySelected = { selectedCategoryFilter = it },
-            onDismiss = { showFilterMenu = false },
-            onClearFilters = {
-                selectedPriorityFilter = null
-                selectedStatusFilter = null
-                selectedCategoryFilter = null
-            }
+            viewModel = viewModel,
+            onDismiss = { showFilterMenu = false }
         )
-    }
-}
-
-@Composable
-fun SearchAndFilterBar(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    onFilterClick: () -> Unit,
-    hasActiveFilters: Boolean
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(all = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Search incidents...") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search"
-                    )
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            IconButton(
-                onClick = onFilterClick,
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (hasActiveFilters) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Filter",
-                    tint = if (hasActiveFilters) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
     }
 }
 
@@ -327,7 +226,7 @@ fun PriorityChip(priority: String) {
     val (backgroundColor, textColor) = when (priority.uppercase()) {
         "CRITICAL" -> Color(0xFFD32F2F) to Color.White
         "HIGH" -> Color(0xFFF57C00) to Color.White
-        "MEDIUM" -> Color(0xFFFDD835) to Color.Black
+        "NORMAL" -> Color(0xFFFDD835) to Color.Black
         "LOW" -> Color(0xFF66BB6A) to Color.White
         else -> Color.Gray to Color.White
     }
@@ -367,110 +266,6 @@ fun EmptyState() {
                 text = "Try adjusting your search or filters",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-fun FilterDialog(
-    selectedPriority: String?,
-    selectedStatus: String?,
-    selectedCategory: String?,
-    onPrioritySelected: (String?) -> Unit,
-    onStatusSelected: (String?) -> Unit,
-    onCategorySelected: (String?) -> Unit,
-    onDismiss: () -> Unit,
-    onClearFilters: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Filter Incidents") },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Priority Filter
-                Text(
-                    text = "Priority",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                FilterChipGroup(
-                    options = listOf("LOW", "MEDIUM", "HIGH", "CRITICAL"),
-                    selectedOption = selectedPriority,
-                    onOptionSelected = onPrioritySelected
-                )
-
-                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-
-                // Status Filter
-                Text(
-                    text = "Status",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                FilterChipGroup(
-                    options = listOf("REPORTED", "ASSIGNED", "RESOLVED"),
-                    selectedOption = selectedStatus,
-                    onOptionSelected = onStatusSelected
-                )
-
-                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-
-                // Category Filter
-                Text(
-                    text = "Category",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                FilterChipGroup(
-                    options = listOf("CRIME", "ENVIRONMENT", "COMMUNAL", "TRAFFIC", "OTHER"),
-                    selectedOption = selectedCategory,
-                    onOptionSelected = onCategorySelected
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Apply")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                onClearFilters()
-                onDismiss()
-            }) {
-                Text("Clear All")
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FilterChipGroup(
-    options: List<String>,
-    selectedOption: String?,
-    onOptionSelected: (String?) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        options.forEach { option ->
-            FilterChip(
-                selected = selectedOption == option,
-                onClick = {
-                    onOptionSelected(if (selectedOption == option) null else option)
-                },
-                label = {
-                    Text(
-                        text = IncidentDisplayHelper.formatCategoryText(option),
-                        fontSize = 12.sp
-                    )
-                }
             )
         }
     }

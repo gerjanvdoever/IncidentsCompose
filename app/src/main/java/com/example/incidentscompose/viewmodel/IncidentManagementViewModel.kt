@@ -10,6 +10,7 @@ import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.data.store.IncidentDataStore
 import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.ui.states.BaseViewModel
+import com.example.incidentscompose.util.IncidentFilterHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +18,6 @@ import kotlinx.coroutines.launch
 
 class IncidentManagementViewModel(
     private val incidentRepository: IncidentRepository,
-    private val incidentDataStore: IncidentDataStore,
     private val tokenPreferences: TokenPreferences,
     private val userRepository: UserRepository
 ): BaseViewModel() {
@@ -40,6 +40,24 @@ class IncidentManagementViewModel(
 
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _selectedPriorityFilter = MutableStateFlow<Set<String>>(emptySet())
+    val selectedPriorityFilter: StateFlow<Set<String>> = _selectedPriorityFilter.asStateFlow()
+
+    private val _selectedStatusFilter = MutableStateFlow<Set<String>>(emptySet())
+    val selectedStatusFilter: StateFlow<Set<String>> = _selectedStatusFilter.asStateFlow()
+
+    private val _selectedCategoryFilter = MutableStateFlow<Set<String>>(emptySet())
+    val selectedCategoryFilter: StateFlow<Set<String>> = _selectedCategoryFilter.asStateFlow()
+
+    private val _filteredIncidents = MutableStateFlow<List<IncidentResponse>>(emptyList())
+    val filteredIncidents: StateFlow<List<IncidentResponse>> = _filteredIncidents.asStateFlow()
+
+    private val _currentIncident = MutableStateFlow<IncidentResponse?>(null)
+    val currentIncident: StateFlow<IncidentResponse?> = _currentIncident.asStateFlow()
 
     private var currentDisplayCount = 0
     private val pageSize = 20
@@ -66,12 +84,36 @@ class IncidentManagementViewModel(
                         currentDisplayCount = minOf(pageSize, incidents.size)
                         _displayedIncidents.value = incidents.take(currentDisplayCount)
                         _showLoadMore.value = incidents.size > currentDisplayCount
+                        applyFilters() // Apply filters after loading
                     },
                     onFailure = { exception ->
                         if (exception.message?.contains("Unauthorized", true) == true) {
                             _unauthorizedState.value = true
                         } else {
                             _toastMessage.value = exception.message
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    fun getIncidentById(incidentId: Long) {
+        viewModelScope.launch {
+            withLoading {
+                val result = incidentRepository.getIncidentById(incidentId)
+                result.fold(
+                    onSuccess = { incident ->
+                        _currentIncident.value = incident
+                        if (!incident.isAnonymous && incident.reportedBy != null) {
+                            fetchReportedUser(incident.reportedBy)
+                        }
+                    },
+                    onFailure = { exception ->
+                        if (exception.message?.contains("Unauthorized", true) == true) {
+                            _unauthorizedState.value = true
+                        } else {
+                            _toastMessage.value = "Failed to load incident: ${exception.message}"
                         }
                     }
                 )
@@ -87,10 +129,64 @@ class IncidentManagementViewModel(
             _displayedIncidents.value = allIncidents.take(newDisplayCount)
             currentDisplayCount = newDisplayCount
             _showLoadMore.value = allIncidents.size > currentDisplayCount
+            applyFilters() // Apply filters after loading more
         } else {
             _showLoadMore.value = false
         }
     }
+
+    fun clearCurrentIncident() {
+        _currentIncident.value = null
+        clearReportedUser()
+    }
+
+    // Filter methods
+    private fun applyFilters() {
+        val filtered = IncidentFilterHelper.instance.filterIncidents(
+            incidents = _displayedIncidents.value,
+            searchQuery = _searchQuery.value,
+            priorityFilter = _selectedPriorityFilter.value,
+            statusFilter = _selectedStatusFilter.value,
+            categoryFilter = _selectedCategoryFilter.value
+        )
+        _filteredIncidents.value = filtered
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+        applyFilters()
+    }
+
+    fun updatePriorityFilter(priorities: Set<String>) {
+        _selectedPriorityFilter.value = priorities
+        applyFilters()
+    }
+
+    fun updateStatusFilter(statuses: Set<String>) {
+        _selectedStatusFilter.value = statuses
+        applyFilters()
+    }
+
+    fun updateCategoryFilter(categories: Set<String>) {
+        _selectedCategoryFilter.value = categories
+        applyFilters()
+    }
+
+    fun clearAllFilters() {
+        _searchQuery.value = ""
+        _selectedPriorityFilter.value = emptySet()
+        _selectedStatusFilter.value = emptySet()
+        _selectedCategoryFilter.value = emptySet()
+        applyFilters()
+    }
+
+    val hasActiveFilters: Boolean
+        get() = IncidentFilterHelper.instance.hasActiveFilters(
+            searchQuery = _searchQuery.value,
+            priorityFilter = _selectedPriorityFilter.value,
+            statusFilter = _selectedStatusFilter.value,
+            categoryFilter = _selectedCategoryFilter.value
+        )
 
     fun fetchReportedUser(userId: Long) {
         viewModelScope.launch {
@@ -121,15 +217,13 @@ class IncidentManagementViewModel(
             withLoading {
                 val result = incidentRepository.changeIncidentPriority(incidentId, priority)
                 result.fold(
-                    onSuccess = { updatedIncident ->
-                        // Update the incident in both lists
-                        _allIncidents.value = _allIncidents.value.map { incident ->
-                            if (incident.id == incidentId) updatedIncident else incident
-                        }
-                        _displayedIncidents.value = _displayedIncidents.value.map { incident ->
-                            if (incident.id == incidentId) updatedIncident else incident
-                        }
+                    onSuccess = {
+                        // Force refresh the incident data from API
+                        getIncidentById(incidentId)
                         _toastMessage.value = "Priority updated successfully"
+
+                        // Also refresh the list to keep it in sync
+                        refreshIncidentInList(incidentId)
                     },
                     onFailure = { exception ->
                         if (exception.message?.contains("Unauthorized", true) == true) {
@@ -148,15 +242,13 @@ class IncidentManagementViewModel(
             withLoading {
                 val result = incidentRepository.changeIncidentStatus(incidentId, status)
                 result.fold(
-                    onSuccess = { updatedIncident ->
-                        // Update the incident in both lists
-                        _allIncidents.value = _allIncidents.value.map { incident ->
-                            if (incident.id == incidentId) updatedIncident else incident
-                        }
-                        _displayedIncidents.value = _displayedIncidents.value.map { incident ->
-                            if (incident.id == incidentId) updatedIncident else incident
-                        }
+                    onSuccess = {
+                        // Force refresh the incident data from API
+                        getIncidentById(incidentId)
                         _toastMessage.value = "Status updated successfully"
+
+                        // Also refresh the incident in the list
+                        refreshIncidentInList(incidentId)
                     },
                     onFailure = { exception ->
                         if (exception.message?.contains("Unauthorized", true) == true) {
@@ -170,6 +262,26 @@ class IncidentManagementViewModel(
         }
     }
 
+    private fun refreshIncidentInList(incidentId: Long) {
+        viewModelScope.launch {
+            val result = incidentRepository.getIncidentById(incidentId)
+            result.fold(
+                onSuccess = { refreshedIncident ->
+                    _allIncidents.value = _allIncidents.value.map { incident ->
+                        if (incident.id == incidentId) refreshedIncident else incident
+                    }
+                    _displayedIncidents.value = _displayedIncidents.value.map { incident ->
+                        if (incident.id == incidentId) refreshedIncident else incident
+                    }
+                    applyFilters()
+                },
+                onFailure = {
+                    // Silently fail for list refresh, main incident refresh will handle errors
+                }
+            )
+        }
+    }
+
     fun deleteIncident(incidentId: Long) {
         viewModelScope.launch {
             withLoading {
@@ -179,6 +291,7 @@ class IncidentManagementViewModel(
                         // Remove the incident from both lists
                         _allIncidents.value = _allIncidents.value.filter { it.id != incidentId }
                         _displayedIncidents.value = _displayedIncidents.value.filter { it.id != incidentId }
+                        applyFilters() // Reapply filters after deletion
                         _toastMessage.value = "Incident deleted successfully"
                     },
                     onFailure = { exception ->
@@ -200,27 +313,5 @@ class IncidentManagementViewModel(
 
     fun clearToastMessage(){
         _toastMessage.value = null
-    }
-
-    fun saveSelectedIncident(incident: IncidentResponse) {
-        viewModelScope.launch {
-            incidentDataStore.saveSelectedIncident(incident)
-        }
-    }
-
-    fun getSelectedIncident() = incidentDataStore.selectedIncident
-
-    fun clearSelectedIncident(){
-        viewModelScope.launch {
-            incidentDataStore.clearSelectedIncident()
-        }
-    }
-
-    fun onIncidentTap(incident: IncidentResponse) {
-        saveSelectedIncident(incident)
-        // If incident has a reported user, fetch their info
-        incident.reportedBy?.let { userId ->
-            fetchReportedUser(userId)
-        }
     }
 }

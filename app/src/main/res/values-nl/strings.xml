@@ -30,6 +30,7 @@
     <string name="cannot_delete_incident">Kan incident niet verwijderen</string>
     <string name="incidents_that_are_assigned_or_resolved_cannot_be_deleted">Incidenten die al toegekend of opgelost zijn kunnen niet worden verwijderd.</string>
     <string name="delete_incident">Verwijder incident?</string>
+    <string name="delete_incident_button">Verwijder Incident</string>
     <string name="are_you_sure_you_want_to_delete_this_incident_this_action_cannot_be_undone">Weet je zeker dat je dit incident wil verwijderen? Dit kan niet ongedaan gemaakt worden.</string>
     <string name="incident_details">Incident details</string>
     <string name="incident_details_not_available">Incidenten details niet beschikbaar</string>
