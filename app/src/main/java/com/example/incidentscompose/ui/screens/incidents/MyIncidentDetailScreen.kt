@@ -42,12 +42,12 @@ import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryTex
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
 import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun MyIncidentDetailScreen(
     navController: NavController,
-    viewModel: MyIncidentViewModel = koinInject()
+    viewModel: MyIncidentViewModel = koinViewModel()
 ) {
     var incident by remember { mutableStateOf<IncidentResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }

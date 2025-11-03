@@ -25,12 +25,12 @@ import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.AutoLoginState
 import com.example.incidentscompose.viewmodel.LoginState
 import com.example.incidentscompose.viewmodel.LoginViewModel
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun LoginScreen(
     navController: NavController,
-    viewModel: LoginViewModel = koinInject()
+    viewModel: LoginViewModel = koinViewModel()
 ) {
     val isBusy by viewModel.isBusy.collectAsState()
     val loginState by viewModel.loginState.collectAsState()

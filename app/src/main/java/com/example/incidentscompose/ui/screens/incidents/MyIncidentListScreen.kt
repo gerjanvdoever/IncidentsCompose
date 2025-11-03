@@ -44,13 +44,13 @@ import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
 import java.net.URLEncoder
 
 @Composable
 fun MyIncidentListScreen(
     navController: NavController,
-    viewModel: MyIncidentViewModel = koinInject()
+    viewModel: MyIncidentViewModel = koinViewModel()
 ) {
     val user by viewModel.user.collectAsState()
     val incidents by viewModel.incidents.collectAsState()

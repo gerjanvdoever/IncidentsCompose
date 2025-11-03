@@ -23,12 +23,12 @@ import com.example.incidentscompose.ui.components.IncidentsTextField
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.RegisterState
 import com.example.incidentscompose.viewmodel.RegisterViewModel
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    viewModel: RegisterViewModel = koinInject()
+    viewModel: RegisterViewModel = koinViewModel()
 ) {
     val isBusy by viewModel.isBusy.collectAsState()
     val registerState by viewModel.registerState.collectAsState()
