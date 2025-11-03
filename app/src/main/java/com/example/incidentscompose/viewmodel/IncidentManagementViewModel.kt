@@ -7,7 +7,6 @@ import com.example.incidentscompose.data.model.Status
 import com.example.incidentscompose.data.model.UserResponse
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.repository.UserRepository
-import com.example.incidentscompose.data.store.IncidentDataStore
 import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.ui.states.BaseViewModel
 import com.example.incidentscompose.util.IncidentFilterHelper

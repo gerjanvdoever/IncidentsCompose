@@ -260,16 +260,14 @@ fun UserItem(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isDismissed by remember { mutableStateOf(false) }
 
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                showDeleteDialog = true
-                false
-            } else {
-                false
-            }
+    val dismissState = rememberSwipeToDismissBoxState()
+
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            showDeleteDialog = true
+            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
         }
-    )
+    }
 
     AnimatedVisibility(
         visible = !isDismissed,
@@ -323,6 +321,7 @@ fun UserItem(
         )
     }
 }
+
 
 @Composable
 fun UserCard(
