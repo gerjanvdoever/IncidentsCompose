@@ -27,7 +27,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun RegisterScreen(
-    navController: NavController,
+    onNavigateToLogin: () -> Unit,
     viewModel: RegisterViewModel = koinViewModel()
 ) {
     val isBusy by viewModel.isBusy.collectAsState()
@@ -48,9 +48,7 @@ fun RegisterScreen(
                     Toast.LENGTH_LONG
                 ).show()
 
-                navController.navigate(Destinations.Login.route) {
-                    popUpTo("register") { inclusive = true }
-                }
+                onNavigateToLogin()
             }
             else -> {
             }
@@ -186,9 +184,7 @@ fun RegisterScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                navController.navigate(Destinations.Login.route) {
-                                    popUpTo(Destinations.Register.route) { inclusive = true }
-                                }
+                                onNavigateToLogin()
                             }
                     )
                 }

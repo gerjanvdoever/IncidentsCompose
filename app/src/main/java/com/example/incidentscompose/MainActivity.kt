@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.example.incidentscompose.navigation.AppNavigation
 import com.example.incidentscompose.navigation.NavGraph
 import com.example.incidentscompose.ui.theme.IncidentsComposeTheme
 
@@ -24,8 +25,9 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
-                    NavGraph(navController = navController)
+                    AppNavigation()
+//                    val navController = rememberNavController()
+//                    NavGraph(navController = navController)
                 }
             }
         }

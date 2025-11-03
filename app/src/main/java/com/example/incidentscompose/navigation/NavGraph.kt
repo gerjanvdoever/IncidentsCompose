@@ -21,14 +21,8 @@ fun NavGraph(navController: NavHostController) {
         navController = navController,
         startDestination = Destinations.Login.route
     ) {
-        composable(Destinations.Login.route) {
-            LoginScreen(navController)
-        }
         composable(Destinations.MyIncidentList.route) {
             MyIncidentListScreen(navController)
-        }
-        composable(Destinations.Register.route) {
-            RegisterScreen(navController)
         }
         composable(
             route = Destinations.UserProfile.route,
