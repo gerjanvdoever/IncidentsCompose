@@ -48,37 +48,152 @@ fun AppNavigation() {
             }
 
             entry<MyIncidentListKey> {
-                TODO("to be implemented")
+                MyIncidentListScreen(
+                    onNavigateToDetail = { backStack.add(MyIncidentDetailKey) },
+                    onNavigateToUserProfile = { userJson ->
+                        backStack.add(UserProfileKey(userJson))
+                    },
+                    onNavigateToReport = { backStack.add(ReportIncidentKey) },
+                    onLogout = {
+                        backStack.removeAll { true }
+                        backStack.add(LoginKey)
+                    },
+                    onNavigateToIncidentList = {
+                        backStack.removeAll { it !is IncidentListKey }
+                        if (backStack.none { it is IncidentListKey }) {
+                            backStack.add(IncidentListKey)
+                        }
+                    },
+                    onNavigateToIncidentMap = {
+                        backStack.removeAll { it !is IncidentMapKey }
+                        if (backStack.none { it is IncidentMapKey }) {
+                            backStack.add(IncidentMapKey)
+                        }
+                    },
+                    onNavigateToUserManagement = {
+                        backStack.removeAll { it !is UserManagementKey }
+                        if (backStack.none { it is UserManagementKey }) {
+                            backStack.add(UserManagementKey)
+                        }
+                    }
+                )
             }
 
             entry<MyIncidentDetailKey> {
-                TODO("to be implemented")
+                MyIncidentDetailScreen(
+                    onNavigateBack = {
+                        backStack.removeLastOrNull()
+                    }
+                )
             }
 
             entry<ReportIncidentKey> {
-                TODO("to be implemented")
+                ReportIncidentScreen(
+                    onNavigateBack = {
+                        backStack.removeLastOrNull()
+                    },
+                    onNavigateToLogin = {
+                        backStack.removeAll { true }
+                        backStack.add(LoginKey)
+                    },
+                    onNavigateToIncidentList = {
+                        backStack.removeAll { true }
+                        backStack.add(MyIncidentListKey)
+                    }
+                )
             }
 
             entry<IncidentListKey> {
-                TODO("to be implemented")
+                IncidentListScreen(
+                    onNavigateToDetail = { incidentId: Long ->
+                        backStack.add(IncidentDetailKey(incidentId))
+                    },
+                    onNavigateToIncidentMap = {
+                        backStack.removeAll { it !is IncidentMapKey }
+                        if (backStack.none { it is IncidentMapKey }) {
+                            backStack.add(IncidentMapKey)
+                        }
+                    },
+                    onNavigateToUserManagement = {
+                        backStack.removeAll { it !is UserManagementKey }
+                        if (backStack.none { it is UserManagementKey }) {
+                            backStack.add(UserManagementKey)
+                        }
+                    },
+                    onNavigateToMyIncidentList = {
+                        backStack.removeAll { it !is MyIncidentListKey }
+                        if (backStack.none { it is MyIncidentListKey }) {
+                            backStack.add(MyIncidentListKey)
+                        }
+                    }
+                )
             }
 
             entry<IncidentMapKey> {
-                TODO("to be implemented")
+                IncidentMapScreen(
+                    onNavigateToDetail = { incidentId : Long ->
+                        backStack.add(IncidentDetailKey(incidentId))
+                    },
+                    onNavigateToMyIncidentList = {
+                        backStack.removeAll { it !is MyIncidentListKey }
+                        if (backStack.none { it is MyIncidentListKey }) {
+                            backStack.add(MyIncidentListKey)
+                        }
+                    },
+                    onNavigateToIncidentList = {
+                        backStack.removeAll { it !is IncidentListKey }
+                        if (backStack.none { it is IncidentListKey }) {
+                            backStack.add(IncidentListKey)
+                        }
+                    },
+                    onNavigateToUserManagement = {
+                        backStack.removeAll { it !is UserManagementKey }
+                        if (backStack.none { it is UserManagementKey }) {
+                            backStack.add(UserManagementKey)
+                        }
+                    }
+                )
             }
 
             entry<UserManagementKey> {
-                TODO("to be implemented")
+                UserManagementScreen(
+                    onNavigateToMyIncidentList = {
+                        backStack.removeAll { it !is MyIncidentListKey }
+                        if (backStack.none { it is MyIncidentListKey }) {
+                            backStack.add(MyIncidentListKey)
+                        }
+                    },
+                    onNavigateToIncidentList = {
+                        backStack.removeAll { it !is IncidentListKey }
+                        if (backStack.none { it is IncidentListKey }) {
+                            backStack.add(IncidentListKey)
+                        }
+                    },
+                    onNavigateToIncidentMap = {
+                        backStack.removeAll { it !is IncidentMapKey }
+                        if (backStack.none { it is IncidentMapKey }) {
+                            backStack.add(IncidentMapKey)
+                        }
+                    },
+                )
             }
 
-            entry<UserProfileKey>{
-                TODO("to be implemented")
-                // data class UserProfileKey(val userJson: String) : NavKey
+            entry<UserProfileKey> {
+                UserProfileScreen(
+                    userJson = it.userJson,
+                    onNavigateBack = { backStack.removeLastOrNull() }
+                )
             }
 
             entry<IncidentDetailKey> {
-                TODO("to be implemented")
-                // data class IncidentDetailKey(val incidentId: Long) : NavKey
+                IncidentDetailScreen(
+                    incidentId = it.incidentId,
+                    onNavigateBack = { backStack.removeLastOrNull() },
+                    onNavigateToMyIncidentList = {
+                        backStack.removeAll { true }
+                        backStack.add(MyIncidentListKey)
+                    }
+                )
             }
         }
     )

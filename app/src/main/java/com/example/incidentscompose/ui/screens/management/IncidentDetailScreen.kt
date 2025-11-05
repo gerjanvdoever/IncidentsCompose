@@ -33,7 +33,6 @@ import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.data.model.Priority
 import com.example.incidentscompose.data.model.Status
-import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.BottomNavBar
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
@@ -46,7 +45,8 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun IncidentDetailScreen(
-    navController: NavController,
+    onNavigateBack: () -> Unit,
+    onNavigateToMyIncidentList: () -> Unit,
     incidentId: Long?,
     viewModel: IncidentManagementViewModel = koinViewModel()
 ) {
@@ -71,9 +71,7 @@ fun IncidentDetailScreen(
 
     LaunchedEffect(unauthorizedState) {
         if (unauthorizedState) {
-            navController.navigate(Destinations.MyIncidentList.route) {
-                popUpTo(Destinations.IncidentList.route) { inclusive = true }
-            }
+            onNavigateToMyIncidentList()
         }
     }
 
@@ -123,7 +121,7 @@ fun IncidentDetailScreen(
                         showDeleteConfirmDialog = false
                         incident?.let { inc ->
                             viewModel.deleteIncident(inc.id)
-                            navController.popBackStack()
+                            onNavigateBack()
                         }
                     },
                     colors = ButtonDefaults.textButtonColors(
@@ -157,20 +155,9 @@ fun IncidentDetailScreen(
             TopNavBar(
                 title = stringResource(R.string.incident_details),
                 showBackButton = true,
-                onBackClick = { navController.popBackStack() },
+                onBackClick = { onNavigateBack() },
                 backgroundColor = MaterialTheme.colorScheme.surface,
                 textColor = MaterialTheme.colorScheme.onSurface
-            )
-        },
-        bottomBar = {
-            BottomNavBar(
-                currentRoute = Destinations.IncidentList.route,
-                userRole = userRole,
-                onItemClick = { route ->
-                    navController.navigate(route) {
-                        launchSingleTop = true
-                    }
-                }
             )
         }
     ) { paddingValues ->

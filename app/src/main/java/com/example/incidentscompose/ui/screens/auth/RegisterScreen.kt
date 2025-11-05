@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.incidentscompose.R
-import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.IncidentsTextField
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.RegisterState

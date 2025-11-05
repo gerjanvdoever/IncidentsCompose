@@ -28,7 +28,7 @@ fun TopNavBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(backgroundColor)
-            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()) // pushes below status bar
+            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
             .height(50.dp)
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center
