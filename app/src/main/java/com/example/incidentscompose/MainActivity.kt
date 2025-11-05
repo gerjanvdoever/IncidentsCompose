@@ -50,6 +50,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// State (note, priority) is passed down as parameters
+// Events (onNoteChange, onPriorityChange) are passed up as callbacks
 @Composable
 fun IncidentScreen(
     category: String,
@@ -61,6 +63,7 @@ fun IncidentScreen(
     onNoteChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // We're "subscribing" to priority, changing deadline each time priority updates.
     val deadline = remember(priority) {
         val date = LocalDate.now().plusDays(priority.deadlineDays)
         date.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
