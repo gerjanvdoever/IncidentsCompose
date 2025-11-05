@@ -39,7 +39,6 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.IncidentCategory
-import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
 import com.example.incidentscompose.util.PhotoUtils
@@ -49,7 +48,9 @@ import androidx.core.net.toUri
 
 @Composable
 fun ReportIncidentScreen(
-    navController: NavController,
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onNavigateToIncidentList: () -> Unit,
     viewModel: ReportIncidentViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -151,13 +152,9 @@ fun ReportIncidentScreen(
             onContinue = {
                 viewModel.dismissSuccessDialog()
                 if (uiState.createdIncident?.reportedBy != null) {
-                    navController.navigate(Destinations.MyIncidentList.route) {
-                        popUpTo(Destinations.ReportIncident.route) { inclusive = true }
-                    }
+                    onNavigateToIncidentList()
                 } else {
-                    navController.navigate(Destinations.Login.route) {
-                        popUpTo(Destinations.ReportIncident.route) { inclusive = true }
-                    }
+                    onNavigateToLogin()
                 }
             }
         )
@@ -169,7 +166,7 @@ fun ReportIncidentScreen(
                 TopNavBar(
                     title = stringResource(R.string.report_incident),
                     showBackButton = true,
-                    onBackClick = { navController.popBackStack() },
+                    onBackClick = { onNavigateBack() },
                 )
             }
         ) { paddingValues ->

@@ -16,7 +16,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.incidentscompose.data.model.IncidentResponse
-import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.navigation.IncidentListKey
+import com.example.incidentscompose.navigation.IncidentMapKey
+import com.example.incidentscompose.navigation.MyIncidentListKey
+import com.example.incidentscompose.navigation.UserManagementKey
 import com.example.incidentscompose.ui.components.BottomNavBar
 import com.example.incidentscompose.ui.components.FilterDialog
 import com.example.incidentscompose.ui.components.LoadingOverlay
@@ -27,7 +30,10 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun IncidentListScreen(
-    navController: NavController,
+    onNavigateToDetail: (Long) -> Unit,
+    onNavigateToIncidentMap: () -> Unit,
+    onNavigateToUserManagement: () -> Unit,
+    onNavigateToMyIncidentList: () -> Unit,
     viewModel: IncidentManagementViewModel = koinViewModel()
 ) {
     val unauthorizedState by viewModel.unauthorizedState.collectAsState()
@@ -40,9 +46,7 @@ fun IncidentListScreen(
 
     LaunchedEffect(unauthorizedState) {
         if (unauthorizedState) {
-            navController.navigate(Destinations.MyIncidentList.route) {
-                popUpTo(Destinations.UserManagement.route) { inclusive = true }
-            }
+            onNavigateToMyIncidentList()
         }
     }
 
@@ -55,11 +59,14 @@ fun IncidentListScreen(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             BottomNavBar(
-                currentRoute = Destinations.IncidentList.route,
+                currentKey = IncidentListKey,
                 userRole = userRole,
-                onItemClick = { route ->
-                    navController.navigate(route) {
-                        launchSingleTop = true
+                onNavigateTo = { route ->
+                    when (route) {
+                        IncidentMapKey -> onNavigateToIncidentMap()
+                        UserManagementKey -> onNavigateToUserManagement()
+                        MyIncidentListKey -> onNavigateToMyIncidentList()
+                        else -> {}
                     }
                 }
             )
@@ -90,7 +97,7 @@ fun IncidentListScreen(
                             IncidentCard(
                                 incident = incident,
                                 onClick = {
-                                    navController.navigate(Destinations.IncidentDetail.createRoute(incident.id))
+                                    onNavigateToDetail(incident.id)
                                 }
                             )
                         }

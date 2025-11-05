@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.incidentscompose.data.model.UserResponse
-import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.IncidentsTextField
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
@@ -29,7 +28,7 @@ import com.example.incidentscompose.R
 
 @Composable
 fun UserProfileScreen(
-    navController: NavController,
+    onNavigateBack: () -> Unit,
     userJson: String?,
     viewModel: UserViewModel = koinViewModel()
 ) {
@@ -47,7 +46,7 @@ fun UserProfileScreen(
 
     if (initialUser == null) {
         LaunchedEffect(Unit) {
-            navController.popBackStack()
+            onNavigateBack()
         }
         return
     }
@@ -66,9 +65,7 @@ fun UserProfileScreen(
         if (updateSuccess) {
             Toast.makeText(context,
                 context.getString(R.string.profile_updated_successfully), Toast.LENGTH_LONG).show()
-            navController.navigate(Destinations.MyIncidentList.route) {
-                popUpTo(Destinations.MyIncidentList.route) { inclusive = true }
-            }
+            onNavigateBack()
         }
     }
 
@@ -85,7 +82,7 @@ fun UserProfileScreen(
                 TopNavBar(
                     title = stringResource(R.string.edit_profile),
                     showBackButton = true,
-                    onBackClick = { navController.popBackStack() },
+                    onBackClick = { onNavigateBack() },
                     backgroundColor = MaterialTheme.colorScheme.surface,
                     textColor = MaterialTheme.colorScheme.onSurface
                 )
@@ -247,7 +244,7 @@ fun UserProfileScreen(
                 }
 
                 TextButton(
-                    onClick = { navController.popBackStack() },
+                    onClick = { onNavigateBack() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(38.dp),

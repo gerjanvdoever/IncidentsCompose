@@ -17,20 +17,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.example.incidentscompose.R
-import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.IncidentsTextField
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.AutoLoginState
 import com.example.incidentscompose.viewmodel.LoginState
 import com.example.incidentscompose.viewmodel.LoginViewModel
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun LoginScreen(
-    navController: NavController,
-    viewModel: LoginViewModel = koinInject()
+    viewModel: LoginViewModel = koinViewModel(),
+    onNavigateToIncidentList: () -> Unit,
+    onNavigateToReport: () -> Unit,
+    onNavigateToRegister: () -> Unit
 ) {
     val isBusy by viewModel.isBusy.collectAsState()
     val loginState by viewModel.loginState.collectAsState()
@@ -48,24 +48,14 @@ fun LoginScreen(
     }
 
     LaunchedEffect(autoLoginState) {
-        when (autoLoginState) {
-            is AutoLoginState.TokenFound -> {
-                navController.navigate(Destinations.MyIncidentList.route) {
-                    popUpTo(Destinations.Login.route) { inclusive = true }
-                }
-            }
-            else -> {}
+        if (autoLoginState is AutoLoginState.TokenFound) {
+            onNavigateToIncidentList()
         }
     }
 
     LaunchedEffect(loginState) {
-        when (loginState) {
-            is LoginState.Success -> {
-                navController.navigate(Destinations.MyIncidentList.route) {
-                    popUpTo(Destinations.Login.route) { inclusive = true }
-                }
-            }
-            else -> {}
+        if (loginState is LoginState.Success) {
+            onNavigateToIncidentList()
         }
     }
 
@@ -155,7 +145,7 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Button(
-                        onClick = { navController.navigate(Destinations.ReportIncident.route) },
+                        onClick = { onNavigateToReport() },
                         shape = RoundedCornerShape(25.dp),
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoggingIn.value
@@ -174,7 +164,7 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .clickable {
                                 if (!isLoggingIn.value) {
-                                    navController.navigate(Destinations.Register.route)
+                                    onNavigateToRegister()
                                 }
                             }
                     )

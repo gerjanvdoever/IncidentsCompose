@@ -34,8 +34,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation3.runtime.NavBackStack
 import com.example.incidentscompose.R
-import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.navigation.IncidentListKey
+import com.example.incidentscompose.navigation.IncidentMapKey
+import com.example.incidentscompose.navigation.MyIncidentListKey
+import com.example.incidentscompose.navigation.UserManagementKey
 import com.example.incidentscompose.ui.components.BottomNavBar
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
@@ -44,13 +48,19 @@ import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
 import com.example.incidentscompose.viewmodel.MyIncidentViewModel
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
 import java.net.URLEncoder
 
 @Composable
 fun MyIncidentListScreen(
-    navController: NavController,
-    viewModel: MyIncidentViewModel = koinInject()
+    onNavigateToDetail: () -> Unit,
+    onNavigateToUserProfile: (String) -> Unit,
+    onNavigateToReport: () -> Unit,
+    onNavigateToIncidentList: () -> Unit,
+    onNavigateToIncidentMap: () -> Unit,
+    onNavigateToUserManagement: () -> Unit,
+    onLogout: () -> Unit,
+    viewModel: MyIncidentViewModel = koinViewModel()
 ) {
     val user by viewModel.user.collectAsState()
     val incidents by viewModel.incidents.collectAsState()
@@ -62,9 +72,7 @@ fun MyIncidentListScreen(
 
     LaunchedEffect(logoutEvent) {
         if (logoutEvent) {
-            navController.navigate(Destinations.Login.route) {
-                popUpTo(Destinations.MyIncidentList.route) { inclusive = true }
-            }
+            onLogout()
             viewModel.resetLogoutEvent()
         }
     }
@@ -78,18 +86,16 @@ fun MyIncidentListScreen(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             if (userRole == "OFFICIAL" || userRole == "ADMIN") {
-                val currentRoute = navController.currentBackStackEntry?.destination?.route ?: ""
                 BottomNavBar(
                     modifier = Modifier.navigationBarsPadding(),
-                    currentRoute = currentRoute,
+                    currentKey = MyIncidentListKey,
                     userRole = userRole,
-                    onItemClick = { route ->
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
+                    onNavigateTo = { route ->
+                        when (route) {
+                            IncidentListKey -> onNavigateToIncidentList()
+                            IncidentMapKey -> onNavigateToIncidentMap()
+                            UserManagementKey ->onNavigateToUserManagement()
+                            else -> {}
                         }
                     }
                 )
@@ -236,7 +242,7 @@ fun MyIncidentListScreen(
                                 incident = incident,
                                 onClick = {
                                     viewModel.saveSelectedIncident(incident)
-                                    navController.navigate(Destinations.MyIncidentDetail.route)
+                                    onNavigateToDetail()
                                 }
                             )
                         }
@@ -245,7 +251,7 @@ fun MyIncidentListScreen(
             }
 
             FloatingActionButton(
-                onClick = { navController.navigate(Destinations.ReportIncident.route) },
+                onClick = { onNavigateToReport() },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(bottom = 20.dp, end = 20.dp),
@@ -310,9 +316,7 @@ fun MyIncidentListScreen(
                                 isDropdownVisible = false
                                 user?.let { userData ->
                                     val userJson = Json.encodeToString(userData)
-                                    val encodedUserJson = URLEncoder.encode(userJson, "UTF-8")
-                                    val route = Destinations.UserProfile.createRoute(encodedUserJson)
-                                    navController.navigate(route)
+                                    onNavigateToUserProfile(userJson)
                                 }
                             },
                             modifier = Modifier.padding(vertical = 4.dp)

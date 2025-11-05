@@ -18,17 +18,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.incidentscompose.R
-import com.example.incidentscompose.navigation.Destinations
 import com.example.incidentscompose.ui.components.IncidentsTextField
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.RegisterState
 import com.example.incidentscompose.viewmodel.RegisterViewModel
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun RegisterScreen(
-    navController: NavController,
-    viewModel: RegisterViewModel = koinInject()
+    onNavigateToLogin: () -> Unit,
+    viewModel: RegisterViewModel = koinViewModel()
 ) {
     val isBusy by viewModel.isBusy.collectAsState()
     val registerState by viewModel.registerState.collectAsState()
@@ -48,9 +47,7 @@ fun RegisterScreen(
                     Toast.LENGTH_LONG
                 ).show()
 
-                navController.navigate(Destinations.Login.route) {
-                    popUpTo("register") { inclusive = true }
-                }
+                onNavigateToLogin()
             }
             else -> {
             }
@@ -186,9 +183,7 @@ fun RegisterScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                navController.navigate(Destinations.Login.route) {
-                                    popUpTo(Destinations.Register.route) { inclusive = true }
-                                }
+                                onNavigateToLogin()
                             }
                     )
                 }

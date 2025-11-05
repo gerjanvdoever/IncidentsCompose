@@ -16,74 +16,77 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.incidentscompose.R
-import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.navigation.IncidentMapKey
+import com.example.incidentscompose.navigation.MyIncidentListKey
+import com.example.incidentscompose.navigation.UserManagementKey
+import com.example.incidentscompose.navigation.IncidentListKey
+import androidx.navigation3.runtime.NavKey
 
 sealed class BottomNavItem(
-    val route: String,
+    val key: NavKey,
     val title: String,
     val icon: Int,
     val requiredRole: Set<String>
 ) {
     data object List : BottomNavItem(
-        route = Destinations.IncidentList.route,
+        key = IncidentListKey,
         title = "List",
         icon = R.drawable.list,
         requiredRole = setOf("OFFICIAL", "ADMIN")
     )
 
     data object Map : BottomNavItem(
-        route = Destinations.IncidentMap.route,
+        key = IncidentMapKey,
         title = "Map",
         icon = R.drawable.map,
         requiredRole = setOf("OFFICIAL", "ADMIN")
     )
 
     data object Users : BottomNavItem(
-        route = Destinations.UserManagement.route,
+        key = UserManagementKey,
         title = "Users",
         icon = R.drawable.users,
         requiredRole = setOf("ADMIN")
     )
 
     data object Profile : BottomNavItem(
-        route = Destinations.MyIncidentList.route,
+        key = MyIncidentListKey,
         title = "Profile",
         icon = R.drawable.profile,
         requiredRole = setOf("OFFICIAL", "ADMIN")
     )
 }
 
+
 @Composable
 fun BottomNavBar(
-    currentRoute: String,
+    currentKey: NavKey,
     userRole: String?,
-    onItemClick: (String) -> Unit,
+    onNavigateTo: (NavKey) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (userRole == "USER" || userRole == null) {
-        return
-    }
+    if (userRole == "USER" || userRole == null) return
 
     val navItems = listOf(
         BottomNavItem.List,
         BottomNavItem.Map,
         BottomNavItem.Users,
         BottomNavItem.Profile
-    ).filter { item ->
-        userRole in item.requiredRole
-    }
+    ).filter { userRole in it.requiredRole }
 
     NavigationBar(
-        modifier = modifier.fillMaxWidth().navigationBarsPadding(),
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface
     ) {
         navItems.forEach { item ->
-            val isSelected = currentRoute == item.route
+            val isSelected = currentKey::class == item.key::class
 
             NavigationBarItem(
                 selected = isSelected,
-                onClick = { onItemClick(item.route) },
+                onClick = { onNavigateTo(item.key) },
                 icon = {
                     Icon(
                         painter = painterResource(id = item.icon),
@@ -110,3 +113,4 @@ fun BottomNavBar(
         }
     }
 }
+

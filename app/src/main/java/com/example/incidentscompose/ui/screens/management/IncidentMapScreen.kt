@@ -12,7 +12,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
-import com.example.incidentscompose.navigation.Destinations
+import com.example.incidentscompose.navigation.IncidentListKey
+import com.example.incidentscompose.navigation.IncidentMapKey
+import com.example.incidentscompose.navigation.MyIncidentListKey
+import com.example.incidentscompose.navigation.UserManagementKey
 import com.example.incidentscompose.ui.components.BottomNavBar
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.viewmodel.IncidentManagementViewModel
@@ -20,7 +23,10 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun IncidentMapScreen(
-    navController: NavController,
+    onNavigateToDetail: (Long) -> Unit,
+    onNavigateToMyIncidentList: () -> Unit,
+    onNavigateToIncidentList: () -> Unit,
+    onNavigateToUserManagement: () -> Unit,
     viewModel: IncidentManagementViewModel = koinViewModel()
 ){
     val unauthorizedState by viewModel.unauthorizedState.collectAsState()
@@ -29,9 +35,7 @@ fun IncidentMapScreen(
 
     LaunchedEffect(unauthorizedState) {
         if (unauthorizedState) {
-            navController.navigate(Destinations.MyIncidentList.route) {
-                popUpTo(Destinations.UserManagement.route) { inclusive = true }
-            }
+            onNavigateToMyIncidentList()
         }
     }
 
@@ -40,11 +44,14 @@ fun IncidentMapScreen(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             BottomNavBar(
-                currentRoute = Destinations.IncidentMap.route,
+                currentKey = IncidentMapKey,
                 userRole = userRole,
-                onItemClick = { route ->
-                    navController.navigate(route) {
-                        launchSingleTop = true
+                onNavigateTo = { route ->
+                    when (route) {
+                        IncidentListKey -> onNavigateToIncidentList()
+                        UserManagementKey -> onNavigateToUserManagement()
+                        MyIncidentListKey -> onNavigateToMyIncidentList()
+                        else -> {}
                     }
                 }
             )
