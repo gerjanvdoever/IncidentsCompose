@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.LocationOn
@@ -27,20 +28,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.data.model.Priority
 import com.example.incidentscompose.data.model.Status
-import com.example.incidentscompose.ui.components.BottomNavBar
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
 import com.example.incidentscompose.util.ImageUrlHelper
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
 import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
-import com.example.incidentscompose.viewmodel.IncidentManagementViewModel
+import com.example.incidentscompose.viewmodel.IncidentDetailViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -48,17 +49,18 @@ fun IncidentDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToMyIncidentList: () -> Unit,
     incidentId: Long?,
-    viewModel: IncidentManagementViewModel = koinViewModel()
+    viewModel: IncidentDetailViewModel = koinViewModel()
 ) {
 
     val incident by viewModel.currentIncident.collectAsState()
     val isBusy by viewModel.isBusy.collectAsState()
-    val userRole by viewModel.userRole.collectAsState()
     val reportedUser by viewModel.reportedUser.collectAsState()
     val toastMessage by viewModel.toastMessage.collectAsState()
     val unauthorizedState by viewModel.unauthorizedState.collectAsState()
+    val userFetchTimeout by viewModel.userFetchTimeout.collectAsState()
 
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var selectedImageUrl by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
 
@@ -89,7 +91,6 @@ fun IncidentDetailScreen(
         }
     }
 
-    // Delete Confirmation Dialog (keep your existing dialog code)
     if (showDeleteConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
@@ -150,6 +151,13 @@ fun IncidentDetailScreen(
         )
     }
 
+    selectedImageUrl?.let { imageUrl ->
+        FullscreenImageDialog(
+            imageUrl = imageUrl,
+            onDismiss = { selectedImageUrl = null }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopNavBar(
@@ -184,6 +192,7 @@ fun IncidentDetailScreen(
                 IncidentManagementContent(
                     incident = incident!!,
                     reportedUser = reportedUser,
+                    userFetchTimeout = userFetchTimeout,
                     onPriorityChange = { priority ->
                         viewModel.updatePriority(incident!!.id, priority)
                     },
@@ -192,6 +201,9 @@ fun IncidentDetailScreen(
                     },
                     onDelete = {
                         showDeleteConfirmDialog = true
+                    },
+                    onImageClick = { imageUrl ->
+                        selectedImageUrl = imageUrl
                     }
                 )
             }
@@ -202,12 +214,64 @@ fun IncidentDetailScreen(
 }
 
 @Composable
+private fun FullscreenImageDialog(
+    imageUrl: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable { onDismiss() }
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Fullscreen image",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentScale = ContentScale.Fit
+            )
+
+            // Close button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(
+                        Color.Black.copy(alpha = 0.5f),
+                        RoundedCornerShape(50)
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = "Close",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun IncidentManagementContent(
     incident: IncidentResponse,
     reportedUser: com.example.incidentscompose.data.model.UserResponse?,
+    userFetchTimeout: Boolean,
     onPriorityChange: (Priority) -> Unit,
     onStatusChange: (Status) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onImageClick: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -222,11 +286,18 @@ private fun IncidentManagementContent(
             onStatusChange = onStatusChange
         )
 
-        ReporterInfoCard(incident, reportedUser)
+        ReporterInfoCard(
+            incident = incident,
+            reportedUser = reportedUser,
+            userFetchTimeout = userFetchTimeout
+        )
 
         IncidentDescriptionCard(incident.description)
 
-        IncidentImagesCard(incident)
+        IncidentImagesCard(
+            incident = incident,
+            onImageClick = onImageClick
+        )
 
         IncidentLocationCard(incident)
 
@@ -288,7 +359,7 @@ private fun IncidentManagementHeaderCard(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // CATEGORY (Read-only)
+            // CATEGORY
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = stringResource(R.string.category),
@@ -455,138 +526,31 @@ private fun IncidentManagementHeaderCard(
 
             HorizontalDivider(thickness = 1.dp, color = Color(0xFFE5E7EB))
 
-            // UPDATED DATE/TIME INFORMATION LAYOUT
+            // DATE/TIME INFORMATION
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // CREATED DATE
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DateRange,
-                            contentDescription = null,
-                            tint = Color(0xFF6B7280),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "CREATED",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF6B7280),
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                    Text(
-                        text = formatDateForDisplay(incident.createdAt),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF111827)
-                    )
-                }
+                DateInfoRow(
+                    label = "CREATED",
+                    date = formatDateForDisplay(incident.createdAt)
+                )
 
-                // UPDATED DATE
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DateRange,
-                            contentDescription = null,
-                            tint = Color(0xFF6B7280),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "UPDATED",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF6B7280),
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                    Text(
-                        text = formatDateForDisplay(incident.updatedAt),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF111827)
-                    )
-                }
+                DateInfoRow(
+                    label = "UPDATED",
+                    date = formatDateForDisplay(incident.updatedAt)
+                )
 
-                // DUE DATE
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DateRange,
-                            contentDescription = null,
-                            tint = Color(0xFF6B7280),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "DUE",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF6B7280),
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                    Text(
-                        text = formatDateForDisplay(incident.dueAt),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF111827)
-                    )
-                }
+                DateInfoRow(
+                    label = "DUE",
+                    date = formatDateForDisplay(incident.dueAt)
+                )
 
-                // COMPLETED DATE (only show if exists)
                 if (incident.completedAt != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.CheckCircle,
-                                contentDescription = null,
-                                tint = Color(0xFF6B7280),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "COMPLETED",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF6B7280),
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-                        Text(
-                            text = formatDateForDisplay(incident.completedAt),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF111827)
-                        )
-                    }
+                    DateInfoRow(
+                        label = "COMPLETED",
+                        date = formatDateForDisplay(incident.completedAt),
+                        icon = Icons.Outlined.CheckCircle
+                    )
                 }
             }
         }
@@ -594,9 +558,48 @@ private fun IncidentManagementHeaderCard(
 }
 
 @Composable
+private fun DateInfoRow(
+    label: String,
+    date: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Outlined.DateRange
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFF6B7280),
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = label,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF6B7280),
+                letterSpacing = 0.5.sp
+            )
+        }
+        Text(
+            text = date,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF111827)
+        )
+    }
+}
+
+@Composable
 private fun ReporterInfoCard(
     incident: IncidentResponse,
-    reportedUser: com.example.incidentscompose.data.model.UserResponse?
+    reportedUser: com.example.incidentscompose.data.model.UserResponse?,
+    userFetchTimeout: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -633,102 +636,140 @@ private fun ReporterInfoCard(
                 )
             }
 
-            // FIXED LOGIC: Only show anonymous if explicitly marked as anonymous
-            // OR if there's no reportedBy ID at all
-            if (incident.isAnonymous || incident.reportedBy == null) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFEF3C7)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Person,
-                            contentDescription = null,
-                            tint = Color(0xFFD97706),
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Text(
-                            text = "Anonymous Report",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF92400E)
-                        )
-                    }
-                }
-            } else if (reportedUser != null) {
-                // Show user info when we have it
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFF9FAFB),
-                    border = BorderStroke(1.dp, Color(0xFFE5E7EB))
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+            when {
+                // Anonymous or no reporter ID
+                incident.isAnonymous || incident.reportedBy == null -> {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFEF3C7)
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Username",
-                                fontSize = 13.sp,
-                                color = Color(0xFF6B7280),
-                                fontWeight = FontWeight.Medium
+                            Icon(
+                                imageVector = Icons.Outlined.Person,
+                                contentDescription = null,
+                                tint = Color(0xFFD97706),
+                                modifier = Modifier.size(32.dp)
                             )
                             Text(
-                                text = reportedUser.username,
-                                fontSize = 14.sp,
-                                color = Color(0xFF111827),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFE5E7EB))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Email",
-                                fontSize = 13.sp,
-                                color = Color(0xFF6B7280),
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = reportedUser.email,
-                                fontSize = 14.sp,
-                                color = Color(0xFF111827),
-                                fontWeight = FontWeight.SemiBold
+                                text = "Anonymous Report",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF92400E)
                             )
                         }
                     }
                 }
-            } else {
-                // Show loading state while fetching user data
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFF9FAFB)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(80.dp),
-                        contentAlignment = Alignment.Center
+                // Timeout occurred
+                userFetchTimeout -> {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFEE2E2),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444))
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                            color = Color(0xFF6B7280)
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.delete),
+                                contentDescription = null,
+                                tint = Color(0xFFDC2626),
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                text = "Failed to retrieve user information",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFDC2626)
+                            )
+                            Text(
+                                text = "Request timed out. Please try again.",
+                                fontSize = 12.sp,
+                                color = Color(0xFF991B1B)
+                            )
+                        }
+                    }
+                }
+                // User data loaded
+                reportedUser != null -> {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF9FAFB),
+                        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Username",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF6B7280),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = reportedUser.username,
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF111827),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFE5E7EB))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Email",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF6B7280),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = reportedUser.email,
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF111827),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                }
+                // Loading state
+                else -> {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF9FAFB)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = Color(0xFF6B7280)
+                            )
+                        }
                     }
                 }
             }
@@ -782,7 +823,10 @@ private fun IncidentDescriptionCard(description: String) {
 }
 
 @Composable
-private fun IncidentImagesCard(incident: IncidentResponse) {
+private fun IncidentImagesCard(
+    incident: IncidentResponse,
+    onImageClick: (String) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -816,7 +860,7 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
                     color = Color(0xFFF3F4F6)
                 ) {
                     Text(
-                        text = if (incident.images.isNotEmpty()) "${incident.images.size}" else "0",
+                        text = incident.images.size.toString(),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF6B7280),
@@ -830,11 +874,16 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(incident.images.count()) { index ->
+                    items(incident.images.size) { index ->
                         val imageUrl = ImageUrlHelper.getFullImageUrl(incident.images[index])
+
                         Surface(
                             shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.size(140.dp),
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clickable {
+                                    imageUrl?.let { onImageClick(it) }
+                                },
                             color = Color(0xFFF3F4F6)
                         ) {
                             if (!imageUrl.isNullOrBlank()) {

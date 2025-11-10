@@ -145,7 +145,7 @@ private fun FilterDialogContent(
         // Priority Filter
         FilterSection(
             title = "Priority",
-            options = listOf("LOW", "MEDIUM", "HIGH", "CRITICAL"),
+            options = listOf("LOW", "NORMAL", "HIGH", "CRITICAL"),
             selectedOptionsFlow = viewModel.selectedPriorityFilter,
             onOptionsSelected = { viewModel.updatePriorityFilter(it.toSet()) }
         )

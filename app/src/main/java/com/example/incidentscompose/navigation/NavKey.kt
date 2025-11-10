@@ -6,12 +6,25 @@ import kotlinx.serialization.Serializable
 @Serializable
 object LoginKey : NavKey
 
+@Serializable
 object MyIncidentListKey : NavKey
+
+@Serializable
 object RegisterKey : NavKey
+
+@Serializable
 object MyIncidentDetailKey : NavKey
+
+@Serializable
 object ReportIncidentKey : NavKey
+
+@Serializable
 object IncidentListKey : NavKey
+
+@Serializable
 object IncidentMapKey : NavKey
+
+@Serializable
 object UserManagementKey : NavKey
 
 @Serializable
