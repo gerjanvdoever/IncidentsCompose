@@ -1,6 +1,7 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.model.UserResponse
 import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.data.store.TokenPreferences
@@ -13,7 +14,7 @@ import kotlinx.coroutines.launch
 class UserManagementViewModel(
     private val repository: UserRepository,
     private val tokenPreferences: TokenPreferences
-): BaseViewModel() {
+) : BaseViewModel() {
 
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole.asStateFlow()
@@ -34,82 +35,72 @@ class UserManagementViewModel(
     private val pageSize = 10
 
     init {
-        loadUsers()
         loadUserRole()
+        loadUsers()
     }
 
-    private fun loadUserRole(){
+    private fun loadUserRole() {
         viewModelScope.launch {
             _userRole.value = tokenPreferences.getUserRole()
         }
     }
 
-    private fun loadUsers(){
+    private fun loadUsers() {
         viewModelScope.launch {
             withLoading {
-                val result = repository.getAllUsers()
-                result.fold(
-                    onSuccess = { users ->
-                        _users.value = users
-                        _showLoadMore.value = users.size >= pageSize
-                    },
-                    onFailure = { exception ->
-                        if (exception.message?.contains("Unauthorized", true) == true) {
-                            _unauthorizedState.value = true
-                        }
-                        _toastMessage.value = "Failed to load users: ${exception.message}"
+                when (val result = repository.getAllUsers()) {
+                    is ApiResult.Success -> {
+                        _users.value = result.data
+                        _showLoadMore.value = result.data.size >= pageSize
                     }
-                )
+                    is ApiResult.HttpError -> _toastMessage.value = "Failed to load users: ${result.message}"
+                    is ApiResult.NetworkError -> _toastMessage.value = "Network error: ${result.exception.message}"
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                }
             }
         }
     }
 
-    fun loadMoreUsers(){
+    fun loadMoreUsers() {
         viewModelScope.launch {
             withLoading {
                 currentPage++
-                val result = repository.getAllUsers()
-                result.fold(
-                    onSuccess = { newUsers ->
-                        val currentUsers = _users.value
-                        _users.value = currentUsers + newUsers
-                        _showLoadMore.value = newUsers.size >= pageSize
-                    },
-                    onFailure = { exception ->
-                        currentPage-- // Revert page on failure
-                        if (exception.message?.contains("Unauthorized", true) == true) {
-                            _unauthorizedState.value = true
-                        }
-                        _toastMessage.value = "Failed to load more users: ${exception.message}"
+                when (val result = repository.getAllUsers()) {
+                    is ApiResult.Success -> {
+                        _users.value += result.data
+                        _showLoadMore.value = result.data.size >= pageSize
                     }
-                )
+                    is ApiResult.HttpError -> {
+                        currentPage--
+                        _toastMessage.value = "Failed to load more users: ${result.message}"
+                    }
+                    is ApiResult.NetworkError -> {
+                        currentPage--
+                        _toastMessage.value = "Network error: ${result.exception.message}"
+                    }
+                    is ApiResult.Unauthorized -> {
+                        currentPage--
+                        _unauthorizedState.value = true
+                    }
+                }
             }
         }
     }
 
-    fun changeUserRole(userId: Long, newRole: String){
+    fun changeUserRole(userId: Long, newRole: String) {
         viewModelScope.launch {
             withLoading {
-                val result = repository.updateUserRole(userId, newRole)
-                result.fold(
-                    onSuccess = {
-                        val updatedUsers = _users.value.map { user ->
-                            if (user.id == userId.toString()) {
-                                user.copy(role = newRole)
-                            } else {
-                                user
-                            }
+                when (val result = repository.updateUserRole(userId, newRole)) {
+                    is ApiResult.Success -> {
+                        _users.value = _users.value.map { user ->
+                            if (user.id == userId.toString()) user.copy(role = newRole) else user
                         }
-                        _users.value = updatedUsers
                         _toastMessage.value = "Role updated successfully"
-                    },
-                    onFailure = { exception ->
-                        if (exception.message?.contains("Unauthorized", true) == true) {
-                            _unauthorizedState.value = true
-                        }
-                        _toastMessage.value = "Failed to update role: ${exception.message}"
                     }
-                )
+                    is ApiResult.HttpError -> _toastMessage.value = "Failed to update role: ${result.message}"
+                    is ApiResult.NetworkError -> _toastMessage.value = "Network error: ${result.exception.message}"
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                }
             }
         }
     }
@@ -117,27 +108,15 @@ class UserManagementViewModel(
     fun deleteUser(userId: Long) {
         viewModelScope.launch {
             withLoading {
-                val result = repository.deleteUser(userId)
-                result.fold(
-                    onSuccess = { success ->
-                        if (success) {
-                            // Remove the user from the list
-                            val updatedUsers = _users.value.filter { user ->
-                                user.id != userId.toString()
-                            }
-                            _users.value = updatedUsers
-                            _toastMessage.value = "User deleted successfully"
-                        } else {
-                            _toastMessage.value = "Failed to delete user"
-                        }
-                    },
-                    onFailure = { exception ->
-                        if (exception.message?.contains("Unauthorized", true) == true) {
-                            _unauthorizedState.value = true
-                        }
-                        _toastMessage.value = "Failed to delete user: ${exception.message}"
+                when (val result = repository.deleteUser(userId)) {
+                    is ApiResult.Success -> {
+                        _users.value = _users.value.filter { it.id != userId.toString() }
+                        _toastMessage.value = "User deleted successfully"
                     }
-                )
+                    is ApiResult.HttpError -> _toastMessage.value = "Failed to delete user: ${result.message}"
+                    is ApiResult.NetworkError -> _toastMessage.value = "Network error: ${result.exception.message}"
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                }
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.model.UpdateUserRequest
 import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.ui.states.BaseViewModel
@@ -19,33 +20,32 @@ class UserViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _unauthorizedState = MutableStateFlow(false)
+    val unauthorizedState: StateFlow<Boolean> = _unauthorizedState.asStateFlow()
+
     fun updateProfile(
         username: String,
         email: String,
         newPassword: String?
     ) {
         viewModelScope.launch {
-            try {
-                withLoading {
-                    _errorMessage.value = null
+            withLoading {
+                _errorMessage.value = null
+                _updateSuccess.value = false
 
-                    val updateRequest = UpdateUserRequest(
-                        username = username,
-                        email = email,
-                        password = newPassword,
-                        avatar = null
-                    )
+                val updateRequest = UpdateUserRequest(
+                    username = username,
+                    email = email,
+                    password = newPassword,
+                    avatar = null
+                )
 
-                    val result = userRepository.updateCurrentUser(updateRequest)
-
-                    if (result.isSuccess) {
-                        _updateSuccess.value = true
-                    } else {
-                        _errorMessage.value = result.exceptionOrNull()?.message ?: "Update failed"
-                    }
+                when (val result = userRepository.updateCurrentUser(updateRequest)) {
+                    is ApiResult.Success -> _updateSuccess.value = true
+                    is ApiResult.HttpError -> _errorMessage.value = "Update failed: ${result.message}"
+                    is ApiResult.NetworkError -> _errorMessage.value = "Network error: ${result.exception.message}"
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
                 }
-            } catch (e: Exception) {
-                _errorMessage.value = e.message ?: "An error occurred during update"
             }
         }
     }
@@ -53,5 +53,6 @@ class UserViewModel(
     fun resetUpdateState() {
         _updateSuccess.value = false
         _errorMessage.value = null
+        _unauthorizedState.value = false
     }
 }

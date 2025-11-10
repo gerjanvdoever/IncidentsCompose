@@ -1,61 +1,49 @@
 package com.example.incidentscompose.data.repository
 
 import com.example.incidentscompose.data.api.IncidentApi
-import com.example.incidentscompose.data.model.CreateIncidentRequest
-import com.example.incidentscompose.data.model.ImageUploadResponse
-import com.example.incidentscompose.data.model.IncidentResponse
-import com.example.incidentscompose.data.model.PaginatedItemResponse
-import com.example.incidentscompose.data.model.Priority
-import com.example.incidentscompose.data.model.Status
-import com.example.incidentscompose.data.model.UpdateIncidentRequest
+import com.example.incidentscompose.data.model.*
 import java.io.File
 
 class IncidentRepository(private val incidentApi: IncidentApi) {
 
-    // Existing methods
-    suspend fun getMyIncidents(): Result<List<IncidentResponse>> = incidentApi.getMyIncidents()
+    suspend fun getMyIncidents(): ApiResult<List<IncidentResponse>> =
+        incidentApi.getMyIncidents()
 
-    suspend fun createIncident(createIncidentRequest: CreateIncidentRequest): Result<IncidentResponse> =
-        incidentApi.createIncident(createIncidentRequest)
+    suspend fun getAllIncidents(): ApiResult<List<IncidentResponse>> =
+        incidentApi.getAllIncidents()
+
+    suspend fun getPaginatedIncidents(page: Int = 1, pageSize: Int = 10): ApiResult<PaginatedItemResponse<IncidentResponse>> =
+        incidentApi.getPaginatedIncidents(page, pageSize)
+
+    suspend fun getIncidentById(incidentId: Long): ApiResult<IncidentResponse> =
+        incidentApi.getIncidentById(incidentId)
+
+    suspend fun createIncident(createIncidentRequest: CreateIncidentRequest): ApiResult<IncidentResponse> =
+        incidentApi.createIncident(createIncidentRequest) // can be unauthorized
+
+    suspend fun updateIncident(incidentId: Long, updateRequest: UpdateIncidentRequest): ApiResult<IncidentResponse> =
+        incidentApi.updateIncident(incidentId, updateRequest)
+
+    suspend fun deleteIncident(incidentId: Long): ApiResult<Unit> =
+        incidentApi.deleteIncident(incidentId)
+
+    suspend fun changeIncidentPriority(incidentId: Long, priority: Priority): ApiResult<IncidentResponse> =
+        incidentApi.changeIncidentPriority(incidentId, priority)
+
+    suspend fun changeIncidentStatus(incidentId: Long, status: Status): ApiResult<IncidentResponse> =
+        incidentApi.changeIncidentStatus(incidentId, status)
 
     suspend fun uploadImageToIncident(
         incidentId: Long,
         imageFile: File,
         description: String = ""
-    ): Result<ImageUploadResponse> =
-        incidentApi.uploadImageToIncident(incidentId, imageFile, description)
+    ): ApiResult<ImageUploadResponse> =
+        incidentApi.uploadImageToIncident(incidentId, imageFile, description) // can be unauthorized
 
     suspend fun uploadMultipleImagesToIncident(
         incidentId: Long,
         imageFiles: List<File>,
         description: String = ""
-    ): Result<List<ImageUploadResponse>> =
-        incidentApi.uploadMultipleImagesToIncident(incidentId, imageFiles, description)
-
-    // Get all incidents (Admin/Official only)
-    suspend fun getAllIncidents(): Result<List<IncidentResponse>> = incidentApi.getAllIncidents()
-
-    // Get paginated incidents
-    suspend fun getPaginatedIncidents(page: Int = 1, pageSize: Int = 10): Result<PaginatedItemResponse<IncidentResponse>> =
-        incidentApi.getPaginatedIncidents(page, pageSize)
-
-    // Get incident by ID
-    suspend fun getIncidentById(incidentId: Long): Result<IncidentResponse> =
-        incidentApi.getIncidentById(incidentId)
-
-    // Update incident
-    suspend fun updateIncident(incidentId: Long, updateRequest: UpdateIncidentRequest): Result<IncidentResponse> =
-        incidentApi.updateIncident(incidentId, updateRequest)
-
-    // Delete incident
-    suspend fun deleteIncident(incidentId: Long): Result<Unit> =
-        incidentApi.deleteIncident(incidentId)
-
-    // Change incident priority (Admin/Official only)
-    suspend fun changeIncidentPriority(incidentId: Long, priority: Priority): Result<IncidentResponse> =
-        incidentApi.changeIncidentPriority(incidentId, priority)
-
-    // Change incident status (Admin/Official only)
-    suspend fun changeIncidentStatus(incidentId: Long, status: Status): Result<IncidentResponse> =
-        incidentApi.changeIncidentStatus(incidentId, status)
+    ): ApiResult<List<ImageUploadResponse>> =
+        incidentApi.uploadMultipleImagesToIncident(incidentId, imageFiles, description) // can be unauthorized
 }

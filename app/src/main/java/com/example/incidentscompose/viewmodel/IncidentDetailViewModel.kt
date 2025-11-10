@@ -1,10 +1,7 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.example.incidentscompose.data.model.IncidentResponse
-import com.example.incidentscompose.data.model.Priority
-import com.example.incidentscompose.data.model.Status
-import com.example.incidentscompose.data.model.UserResponse
+import com.example.incidentscompose.data.model.*
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.data.store.TokenPreferences
@@ -15,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.lang.Exception
 
 class IncidentDetailViewModel(
     private val incidentRepository: IncidentRepository,
@@ -54,22 +52,20 @@ class IncidentDetailViewModel(
     fun getIncidentById(incidentId: Long) {
         viewModelScope.launch {
             withLoading {
-                val result = incidentRepository.getIncidentById(incidentId)
-                result.fold(
-                    onSuccess = { incident ->
+                when (val result = incidentRepository.getIncidentById(incidentId)) {
+                    is ApiResult.Success -> {
+                        val incident = result.data
                         _currentIncident.value = incident
                         if (!incident.isAnonymous && incident.reportedBy != null) {
                             fetchReportedUser(incident.reportedBy)
                         }
-                    },
-                    onFailure = { exception ->
-                        if (exception.message?.contains("Unauthorized", true) == true) {
-                            _unauthorizedState.value = true
-                        } else {
-                            _toastMessage.value = "Failed to load incident: ${exception.message}"
-                        }
                     }
-                )
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                    is ApiResult.HttpError -> _toastMessage.value =
+                        "Failed to load incident: ${result.message}"
+                    is ApiResult.NetworkError -> _toastMessage.value =
+                        "Network error: ${result.exception.message}"
+                }
             }
         }
     }
@@ -80,16 +76,12 @@ class IncidentDetailViewModel(
     }
 
     fun fetchReportedUser(userId: Long) {
-        // Cancel any existing fetch job
         userFetchJob?.cancel()
-
-        // Reset timeout state
         _userFetchTimeout.value = false
 
         userFetchJob = viewModelScope.launch {
-            // Start timeout timer
             val timeoutJob = launch {
-                delay(5000) // 5 seconds timeout
+                delay(5000)
                 if (_reportedUser.value == null) {
                     _userFetchTimeout.value = true
                 }
@@ -97,21 +89,15 @@ class IncidentDetailViewModel(
 
             try {
                 withLoading {
-                    val result = userRepository.getUserById(userId)
-                    result.fold(
-                        onSuccess = { user ->
-                            _reportedUser.value = user
-                            timeoutJob.cancel() // Cancel timeout if successful
-                        },
-                        onFailure = { exception ->
-                            timeoutJob.cancel() // Cancel timeout
-                            if (exception.message?.contains("Unauthorized", true) == true) {
-                                _unauthorizedState.value = true
-                            } else {
-                                _userFetchTimeout.value = true
-                            }
+                    when (val result = userRepository.getUserById(userId)) {
+                        is ApiResult.Success -> {
+                            _reportedUser.value = result.data
+                            timeoutJob.cancel()
                         }
-                    )
+                        is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                        is ApiResult.HttpError -> _userFetchTimeout.value = true
+                        is ApiResult.NetworkError -> _userFetchTimeout.value = true
+                    }
                 }
             } catch (e: Exception) {
                 timeoutJob.cancel()
@@ -129,21 +115,17 @@ class IncidentDetailViewModel(
     fun updatePriority(incidentId: Long, priority: Priority) {
         viewModelScope.launch {
             withLoading {
-                val result = incidentRepository.changeIncidentPriority(incidentId, priority)
-                result.fold(
-                    onSuccess = {
-                        // Force refresh the incident data from API
+                when (val result = incidentRepository.changeIncidentPriority(incidentId, priority)) {
+                    is ApiResult.Success -> {
                         getIncidentById(incidentId)
                         _toastMessage.value = "Priority updated successfully"
-                    },
-                    onFailure = { exception ->
-                        if (exception.message?.contains("Unauthorized", true) == true) {
-                            _unauthorizedState.value = true
-                        } else {
-                            _toastMessage.value = "Failed to update priority: ${exception.message}"
-                        }
                     }
-                )
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                    is ApiResult.HttpError -> _toastMessage.value =
+                        "Failed to update priority: ${result.message}"
+                    is ApiResult.NetworkError -> _toastMessage.value =
+                        "Network error: ${result.exception.message}"
+                }
             }
         }
     }
@@ -151,21 +133,17 @@ class IncidentDetailViewModel(
     fun updateStatus(incidentId: Long, status: Status) {
         viewModelScope.launch {
             withLoading {
-                val result = incidentRepository.changeIncidentStatus(incidentId, status)
-                result.fold(
-                    onSuccess = {
-                        // Force refresh the incident data from API
+                when (val result = incidentRepository.changeIncidentStatus(incidentId, status)) {
+                    is ApiResult.Success -> {
                         getIncidentById(incidentId)
                         _toastMessage.value = "Status updated successfully"
-                    },
-                    onFailure = { exception ->
-                        if (exception.message?.contains("Unauthorized", true) == true) {
-                            _unauthorizedState.value = true
-                        } else {
-                            _toastMessage.value = "Failed to update status: ${exception.message}"
-                        }
                     }
-                )
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                    is ApiResult.HttpError -> _toastMessage.value =
+                        "Failed to update status: ${result.message}"
+                    is ApiResult.NetworkError -> _toastMessage.value =
+                        "Network error: ${result.exception.message}"
+                }
             }
         }
     }
@@ -173,19 +151,14 @@ class IncidentDetailViewModel(
     fun deleteIncident(incidentId: Long) {
         viewModelScope.launch {
             withLoading {
-                val result = incidentRepository.deleteIncident(incidentId)
-                result.fold(
-                    onSuccess = {
-                        _toastMessage.value = "Incident deleted successfully"
-                    },
-                    onFailure = { exception ->
-                        if (exception.message?.contains("Unauthorized", true) == true) {
-                            _unauthorizedState.value = true
-                        } else {
-                            _toastMessage.value = "Failed to delete incident: ${exception.message}"
-                        }
-                    }
-                )
+                when (val result = incidentRepository.deleteIncident(incidentId)) {
+                    is ApiResult.Success -> _toastMessage.value = "Incident deleted successfully"
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                    is ApiResult.HttpError -> _toastMessage.value =
+                        "Failed to delete incident: ${result.message}"
+                    is ApiResult.NetworkError -> _toastMessage.value =
+                        "Network error: ${result.exception.message}"
+                }
             }
         }
     }

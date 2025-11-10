@@ -1,6 +1,7 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,22 +45,23 @@ class RegisterViewModel(
 
         viewModelScope.launch {
             try {
-                val success = withLoading {
-                    userRepository.register(username, password, email, null)
-                }
-                _registerState.value = if (success) {
-                    RegisterState.Success
-                } else {
-                    RegisterState.Error("Registration failed.")
+                when (val result = userRepository.register(username, password, email, null)) {
+                    is ApiResult.Success -> _registerState.value = RegisterState.Success
+                    is ApiResult.HttpError -> {
+                        val message = if (result.code == 401) "Unauthorized access." else "Registration failed: ${result.message}"
+                        _registerState.value = RegisterState.Error(message)
+                    }
+                    is ApiResult.NetworkError -> {
+                        _registerState.value = RegisterState.Error("Network error: ${result.exception.message ?: "Please try again later"}")
+                    }
+                    else -> _registerState.value = RegisterState.Error("Unknown error occurred")
                 }
             } catch (e: Exception) {
                 val errorMessage = when (e) {
                     is ConnectException, is SocketTimeoutException, is UnknownHostException -> {
                         "Network error: Unable to connect to server."
                     }
-                    else -> {
-                        "Network error: ${e.message ?: "Please try again later"}"
-                    }
+                    else -> "Unexpected error: ${e.message ?: "Please try again later"}"
                 }
                 _registerState.value = RegisterState.Error(errorMessage)
             }

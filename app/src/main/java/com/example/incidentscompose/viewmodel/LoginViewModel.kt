@@ -1,6 +1,7 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,27 +32,35 @@ class LoginViewModel(
 
         viewModelScope.launch {
             try {
-                val success = withLoading {
-                    repository.login(username, password)
+                val result = withLoading {
+                    repository.login(username, password) // Now returns ApiResult<Unit>
                 }
-                _loginState.value = if (success) {
-                    LoginState.Success
-                } else {
-                    LoginState.Error("Invalid username or password")
+
+                when (result) {
+                    is ApiResult.Success -> {
+                        _loginState.value = LoginState.Success
+                    }
+                    is ApiResult.HttpError -> {
+                        _loginState.value = LoginState.Error("Login failed: ${result.message}")
+                    }
+                    is ApiResult.NetworkError -> {
+                        _loginState.value = LoginState.Error("Network error: ${result.exception.message ?: "Please try again"}")
+                    }
+                    is ApiResult.Unauthorized -> {
+                        _loginState.value = LoginState.Error("Invalid username or password")
+                    }
                 }
             } catch (e: Exception) {
                 val errorMessage = when (e) {
-                    is ConnectException, is SocketTimeoutException, is UnknownHostException -> {
+                    is ConnectException, is SocketTimeoutException, is UnknownHostException ->
                         "Network error: Unable to connect to server."
-                    }
-                    else -> {
-                        "Network error: ${e.message ?: "Please try again later"}"
-                    }
+                    else -> "Network error: ${e.message ?: "Please try again later"}"
                 }
                 _loginState.value = LoginState.Error(errorMessage)
             }
         }
     }
+
 
     fun checkAutoLogin() {
         viewModelScope.launch {

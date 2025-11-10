@@ -3,6 +3,7 @@ package com.example.incidentscompose.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.data.model.UserResponse
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.repository.UserRepository
@@ -37,9 +38,12 @@ class MyIncidentListViewModel(
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole.asStateFlow()
 
+    private val _unauthorizedState = MutableStateFlow(false)
+    val unauthorizedState: StateFlow<Boolean> = _unauthorizedState.asStateFlow()
+
     init {
-        loadUserData()
         loadUserRole()
+        loadUserData()
     }
 
     private fun loadUserRole() {
@@ -53,17 +57,20 @@ class MyIncidentListViewModel(
             _isLoading.value = true
 
             try {
-                val userResult = userRepository.getCurrentUser()
+                when (val userResult = userRepository.getCurrentUser()) {
+                    is ApiResult.Success -> {
+                        _user.value = userResult.data
 
-                if (userResult.isSuccess) {
-                    _user.value = userResult.getOrNull()
-
-                    val incidentsResult = incidentRepository.getMyIncidents()
-                    if (incidentsResult.isSuccess) {
-                        _incidents.value = incidentsResult.getOrNull() ?: emptyList()
+                        when (val incidentsResult = incidentRepository.getMyIncidents()) {
+                            is ApiResult.Success -> _incidents.value = incidentsResult.data
+                            is ApiResult.HttpError -> handleIncidentError(incidentsResult)
+                            is ApiResult.NetworkError -> handleIncidentError(incidentsResult)
+                            is ApiResult.Unauthorized -> logout()
+                        }
                     }
-                } else {
-                    logout()
+                    is ApiResult.HttpError -> handleUserError(userResult)
+                    is ApiResult.NetworkError -> handleUserError(userResult)
+                    is ApiResult.Unauthorized -> logout()
                 }
             } catch (e: Exception) {
                 logout()
@@ -73,21 +80,32 @@ class MyIncidentListViewModel(
         }
     }
 
+    private fun handleUserError(result: ApiResult<*>): Boolean {
+        if (result is ApiResult.HttpError && result.code == 401) {
+            _unauthorizedState.value = true
+        }
+        logout()
+        return false
+    }
+
+    private fun handleIncidentError(result: ApiResult<*>): Boolean {
+        if (result is ApiResult.HttpError && result.code == 401) {
+            _unauthorizedState.value = true
+        }
+        // Leave incidents list unchanged
+        return false
+    }
+
     fun logout() {
         viewModelScope.launch {
             _isLoading.value = true
-
             try {
                 authRepository.logout()
-                _user.value = null
-                _incidents.value = emptyList()
-                _logoutEvent.value = true
-            } catch (e: Exception) {
-                // Even if logout fails, clear local state
-                _user.value = null
-                _incidents.value = emptyList()
-                _logoutEvent.value = true
             } finally {
+                // Clear local state regardless of logout success
+                _user.value = null
+                _incidents.value = emptyList()
+                _logoutEvent.value = true
                 _isLoading.value = false
             }
         }
@@ -106,14 +124,13 @@ class MyIncidentListViewModel(
     fun refreshIncidents() {
         viewModelScope.launch {
             _isLoading.value = true
-
             try {
-                val incidentsResult = incidentRepository.getMyIncidents()
-                if (incidentsResult.isSuccess) {
-                    _incidents.value = incidentsResult.getOrNull() ?: emptyList()
+                when (val incidentsResult = incidentRepository.getMyIncidents()) {
+                    is ApiResult.Success -> _incidents.value = incidentsResult.data
+                    is ApiResult.HttpError -> handleIncidentError(incidentsResult)
+                    is ApiResult.NetworkError -> handleIncidentError(incidentsResult)
+                    is ApiResult.Unauthorized -> handleUserError(incidentsResult)
                 }
-            } catch (e: Exception) {
-                // Handle error - incidents remain unchanged
             } finally {
                 _isLoading.value = false
             }

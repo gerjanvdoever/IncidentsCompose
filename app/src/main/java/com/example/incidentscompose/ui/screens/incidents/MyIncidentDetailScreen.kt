@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.incidentscompose.R
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.ui.components.LoadingOverlay
@@ -80,12 +81,17 @@ fun MyIncidentDetailScreen(
 
     LaunchedEffect(updateResult) {
         updateResult?.let { result ->
-            if (result.isSuccess) {
+            if (result is ApiResult.Success) {
                 Toast.makeText(context, successUpdateMessage, Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(
                     context,
-                    "$failureUpdateMessage ${result.exceptionOrNull()?.message}",
+                    "$failureUpdateMessage ${when (result) {
+                        is ApiResult.HttpError -> result.message
+                        is ApiResult.NetworkError -> result.exception.message
+                        is ApiResult.Unauthorized -> onNavigateBack()
+                        else -> "Unknown error"
+                    }}",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -93,18 +99,24 @@ fun MyIncidentDetailScreen(
         }
     }
 
+
     val successDeleteMessage = stringResource(R.string.incident_deleted_successfully)
     val failureDeleteMessage = stringResource(R.string.failed_to_delete_incident)
 
     LaunchedEffect(deleteResult) {
         deleteResult?.let { result ->
-            if (result.isSuccess) {
+            if (result is ApiResult.Success) {
                 Toast.makeText(context, successDeleteMessage, Toast.LENGTH_LONG).show()
                 onNavigateBack()
             } else {
                 Toast.makeText(
                     context,
-                    "$failureDeleteMessage ${result.exceptionOrNull()?.message}",
+                    "$failureDeleteMessage ${when (result) {
+                        is ApiResult.HttpError -> result.message
+                        is ApiResult.NetworkError -> result.exception.message
+                        is ApiResult.Unauthorized -> onNavigateBack()
+                        else -> "Unknown error"
+                    }}",
                     Toast.LENGTH_LONG
                 ).show()
             }

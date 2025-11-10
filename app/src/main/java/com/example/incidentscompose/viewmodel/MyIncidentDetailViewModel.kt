@@ -6,12 +6,10 @@ import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.data.model.UpdateIncidentRequest
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.store.IncidentDataStore
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.ui.states.BaseViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -23,16 +21,16 @@ class MyIncidentDetailViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _updateResult = MutableStateFlow<Result<IncidentResponse>?>(null)
-    val updateResult: StateFlow<Result<IncidentResponse>?> = _updateResult.asStateFlow()
+    private val _updateResult = MutableStateFlow<ApiResult<IncidentResponse>?>(null)
+    val updateResult: StateFlow<ApiResult<IncidentResponse>?> = _updateResult.asStateFlow()
 
-    private val _deleteResult = MutableStateFlow<Result<Unit>?>(null)
-    val deleteResult: StateFlow<Result<Unit>?> = _deleteResult.asStateFlow()
+    private val _deleteResult = MutableStateFlow<ApiResult<Unit>?>(null)
+    val deleteResult: StateFlow<ApiResult<Unit>?> = _deleteResult.asStateFlow()
 
     fun updateIncident(
         incidentId: Long,
-        category: IncidentCategory?,
-        description: String?,
+        category: IncidentCategory? = null,
+        description: String? = null,
         latitude: Double? = null,
         longitude: Double? = null
     ) {
@@ -49,13 +47,11 @@ class MyIncidentDetailViewModel(
                     val result = incidentRepository.updateIncident(incidentId, updateRequest)
                     _updateResult.value = result
 
-                    if (result.isSuccess) {
-                        result.getOrNull()?.let { updatedIncident ->
-                            incidentDataStore.saveSelectedIncident(updatedIncident)
-                        }
+                    if (result is ApiResult.Success) {
+                        incidentDataStore.saveSelectedIncident(result.data)
                     }
                 } catch (e: Exception) {
-                    _updateResult.value = Result.failure(e)
+                    _updateResult.value = ApiResult.NetworkError(e)
                 }
             }
         }
@@ -72,7 +68,7 @@ class MyIncidentDetailViewModel(
                     val result = incidentRepository.deleteIncident(incidentId)
                     _deleteResult.value = result
                 } catch (e: Exception) {
-                    _deleteResult.value = Result.failure(e)
+                    _deleteResult.value = ApiResult.NetworkError(e)
                 }
             }
         }

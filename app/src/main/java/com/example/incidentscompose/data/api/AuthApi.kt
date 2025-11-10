@@ -1,29 +1,35 @@
 package com.example.incidentscompose.data.api
 
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.model.LoginRequest
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class AuthApi(private val client: HttpClient) {
+    private val baseUrl = "http://10.0.2.2:8080/api/auth"
 
-    suspend fun login(username: String, password: String): String? {
-        return withContext(Dispatchers.IO) {
-            val response: HttpResponse = client.post("http://10.0.2.2:8080/api/auth/login") {
+    suspend fun login(username: String, password: String): ApiResult<String> {
+        return try {
+            val response = client.post("$baseUrl/login") {
                 contentType(ContentType.Application.Json)
                 setBody(LoginRequest(username, password))
             }
 
             if (response.status == HttpStatusCode.OK) {
-                val body: Map<String, String> = response.body()
-                body["token"]
+                val body = response.body<Map<String, String>>()
+                val token = body["token"]
+                if (token != null) {
+                    ApiResult.Success(token)
+                } else {
+                    ApiResult.HttpError(500, "Missing token in response")
+                }
             } else {
-                null
+                ApiResult.HttpError(response.status.value, response.status.description)
             }
+        } catch (e: Exception) {
+            ApiResult.NetworkError(e)
         }
     }
 }
