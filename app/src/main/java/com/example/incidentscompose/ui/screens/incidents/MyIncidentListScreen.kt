@@ -32,9 +32,8 @@ import android.provider.Settings
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import com.example.incidentscompose.R
 import com.example.incidentscompose.navigation.IncidentListKey
 import com.example.incidentscompose.navigation.IncidentMapKey
@@ -45,11 +44,9 @@ import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
 import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
-import com.example.incidentscompose.viewmodel.MyIncidentViewModel
-import kotlinx.serialization.encodeToString
+import com.example.incidentscompose.viewmodel.MyIncidentListViewModel
 import kotlinx.serialization.json.Json
 import org.koin.androidx.compose.koinViewModel
-import java.net.URLEncoder
 
 @Composable
 fun MyIncidentListScreen(
@@ -60,7 +57,8 @@ fun MyIncidentListScreen(
     onNavigateToIncidentMap: () -> Unit,
     onNavigateToUserManagement: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: MyIncidentViewModel = koinViewModel()
+    viewModel: MyIncidentListViewModel = koinViewModel(),
+    backStack: NavBackStack<NavKey>
 ) {
     val user by viewModel.user.collectAsState()
     val incidents by viewModel.incidents.collectAsState()
@@ -69,6 +67,15 @@ fun MyIncidentListScreen(
     var isDropdownVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val userRole by viewModel.userRole.collectAsState()
+
+    LaunchedEffect(backStack) {
+        snapshotFlow { backStack.lastOrNull() }
+            .collect { currentKey ->
+                if (currentKey == MyIncidentListKey) {
+                    viewModel.refreshIncidents()
+                }
+            }
+    }
 
     LaunchedEffect(logoutEvent) {
         if (logoutEvent) {

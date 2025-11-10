@@ -1,6 +1,6 @@
 package com.example.incidentscompose.data.api
 
-import LoginRequest
+import com.example.incidentscompose.data.model.LoginRequest
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*

@@ -38,12 +38,14 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
+    val registrationSuccessMessage = stringResource(R.string.registration_successful_you_can_now_log_in)
+
     LaunchedEffect(registerState) {
         when (registerState) {
             is RegisterState.Success -> {
                 Toast.makeText(
                     context,
-                    context.getString(R.string.registration_successful_you_can_now_log_in),
+                    registrationSuccessMessage,
                     Toast.LENGTH_LONG
                 ).show()
 

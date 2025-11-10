@@ -40,13 +40,13 @@ import com.example.incidentscompose.util.IncidentCategoryUtils
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
 import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
-import com.example.incidentscompose.viewmodel.MyIncidentViewModel
+import com.example.incidentscompose.viewmodel.MyIncidentDetailViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun MyIncidentDetailScreen(
     onNavigateBack: () -> Unit,
-    viewModel: MyIncidentViewModel = koinViewModel()
+    viewModel: MyIncidentDetailViewModel = koinViewModel()
 ) {
     var incident by remember { mutableStateOf<IncidentResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -75,18 +75,17 @@ fun MyIncidentDetailScreen(
         }
     }
 
+    val successUpdateMessage = stringResource(R.string.incident_updated_successfully)
+    val failureUpdateMessage = stringResource(R.string.failed_to_update_incident)
+
     LaunchedEffect(updateResult) {
         updateResult?.let { result ->
             if (result.isSuccess) {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.incident_updated_successfully),
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(context, successUpdateMessage, Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(
                     context,
-                    context.getString(R.string.failed_to_update_incident) + " ${result.exceptionOrNull()?.message}",
+                    "$failureUpdateMessage ${result.exceptionOrNull()?.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -94,20 +93,18 @@ fun MyIncidentDetailScreen(
         }
     }
 
+    val successDeleteMessage = stringResource(R.string.incident_deleted_successfully)
+    val failureDeleteMessage = stringResource(R.string.failed_to_delete_incident)
+
     LaunchedEffect(deleteResult) {
         deleteResult?.let { result ->
             if (result.isSuccess) {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.incident_deleted_successfully),
-                    Toast.LENGTH_LONG
-                ).show()
-                viewModel.refreshIncidents()
+                Toast.makeText(context, successDeleteMessage, Toast.LENGTH_LONG).show()
                 onNavigateBack()
             } else {
                 Toast.makeText(
                     context,
-                    context.getString(R.string.failed_to_delete_incident) + " ${result.exceptionOrNull()?.message}",
+                    "$failureDeleteMessage ${result.exceptionOrNull()?.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }

@@ -44,7 +44,7 @@
     <string name="incident_image">Incident afbeelding</string>
     <string name="no_photos_available">Geen foto\'s beschikbaar</string>
     <string name="location">LOCATIE</string>
-    <string name="loading">Laden...</string>
+    <string name="loading">Laden…</string>
     <string name="account_dashboard">Account Dashboard</string>
     <string name="total_incidents">Totale incidenten</string>
     <string name="active">Actief</string>

@@ -61,10 +61,11 @@ fun UserProfileScreen(
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
+    val updateProfileSuccessMessage = stringResource(R.string.profile_updated_successfully)
     LaunchedEffect(updateSuccess) {
         if (updateSuccess) {
             Toast.makeText(context,
-                context.getString(R.string.profile_updated_successfully), Toast.LENGTH_LONG).show()
+                updateProfileSuccessMessage, Toast.LENGTH_LONG).show()
             onNavigateBack()
         }
     }

@@ -10,7 +10,8 @@ import com.example.incidentscompose.data.store.IncidentDataStore
 import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.viewmodel.IncidentManagementViewModel
 import com.example.incidentscompose.viewmodel.LoginViewModel
-import com.example.incidentscompose.viewmodel.MyIncidentViewModel
+import com.example.incidentscompose.viewmodel.MyIncidentDetailViewModel
+import com.example.incidentscompose.viewmodel.MyIncidentListViewModel
 import com.example.incidentscompose.viewmodel.RegisterViewModel
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
 import com.example.incidentscompose.viewmodel.UserManagementViewModel
@@ -45,7 +46,8 @@ val dataModule = module {
 
 val viewModelModule = module {
     viewModel { LoginViewModel(get()) }
-    viewModel { MyIncidentViewModel(get(), get(), get(), get(), get()) }
+    viewModel { MyIncidentListViewModel (get(), get(), get(), get(), get()) }
+    viewModel { MyIncidentDetailViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { ReportIncidentViewModel(get()) }
     viewModel { UserViewModel(get()) }

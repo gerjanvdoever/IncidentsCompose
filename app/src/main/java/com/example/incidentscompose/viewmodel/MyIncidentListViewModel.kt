@@ -1,9 +1,7 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
-import com.example.incidentscompose.data.model.UpdateIncidentRequest
 import com.example.incidentscompose.data.model.UserResponse
 import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.data.repository.IncidentRepository
@@ -16,12 +14,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class MyIncidentViewModel(
+class MyIncidentListViewModel(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val incidentRepository: IncidentRepository,
-    private val incidentDataStore: IncidentDataStore,
-    private val tokenPreferences: TokenPreferences
+    private val tokenPreferences: TokenPreferences,
+    private val incidentDataStore: IncidentDataStore
 ) : BaseViewModel() {
 
     private val _user = MutableStateFlow<UserResponse?>(null)
@@ -35,12 +33,6 @@ class MyIncidentViewModel(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _updateResult = MutableStateFlow<Result<IncidentResponse>?>(null)
-    val updateResult: StateFlow<Result<IncidentResponse>?> = _updateResult.asStateFlow()
-
-    private val _deleteResult = MutableStateFlow<Result<Unit>?>(null)
-    val deleteResult: StateFlow<Result<Unit>?> = _deleteResult.asStateFlow()
 
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole.asStateFlow()
@@ -105,7 +97,12 @@ class MyIncidentViewModel(
         _logoutEvent.value = false
     }
 
-    // future pull down to refresh for incident list?
+    fun saveSelectedIncident(incident: IncidentResponse) {
+        viewModelScope.launch {
+            incidentDataStore.saveSelectedIncident(incident)
+        }
+    }
+
     fun refreshIncidents() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -120,75 +117,6 @@ class MyIncidentViewModel(
             } finally {
                 _isLoading.value = false
             }
-        }
-    }
-
-    fun updateIncident(
-        incidentId: Long,
-        category: IncidentCategory?,
-        description: String?,
-        latitude: Double? = null,
-        longitude: Double? = null
-    ) {
-        viewModelScope.launch {
-            withLoading {
-                try {
-                    val updateRequest = UpdateIncidentRequest(
-                        category = category,
-                        description = description,
-                        latitude = latitude,
-                        longitude = longitude
-                    )
-
-                    val result = incidentRepository.updateIncident(incidentId, updateRequest)
-                    _updateResult.value = result
-
-                    if (result.isSuccess) {
-                        result.getOrNull()?.let { updatedIncident ->
-                            incidentDataStore.saveSelectedIncident(updatedIncident)
-                        }
-
-                        refreshIncidents()
-                    }
-                } catch (e: Exception) {
-                    _updateResult.value = Result.failure(e)
-                }
-            }
-        }
-    }
-
-    fun resetUpdateResult() {
-        _updateResult.value = null
-    }
-
-    fun deleteIncident(incidentId: Long) {
-        viewModelScope.launch {
-            withLoading {
-                try {
-                    val result = incidentRepository.deleteIncident(incidentId)
-                    _deleteResult.value = result
-                } catch (e: Exception) {
-                    _deleteResult.value = Result.failure(e)
-                }
-            }
-        }
-    }
-
-    fun resetDeleteResult() {
-        _deleteResult.value = null
-    }
-
-    fun saveSelectedIncident(incident: IncidentResponse) {
-        viewModelScope.launch {
-            incidentDataStore.saveSelectedIncident(incident)
-        }
-    }
-
-    fun getSelectedIncident() = incidentDataStore.selectedIncident
-
-    fun clearSelectedIncident() {
-        viewModelScope.launch {
-            incidentDataStore.clearSelectedIncident()
         }
     }
 }

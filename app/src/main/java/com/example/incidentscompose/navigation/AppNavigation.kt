@@ -49,6 +49,7 @@ fun AppNavigation() {
 
             entry<MyIncidentListKey> {
                 MyIncidentListScreen(
+                    backStack = backStack,
                     onNavigateToDetail = { backStack.add(MyIncidentDetailKey) },
                     onNavigateToUserProfile = { userJson ->
                         backStack.add(UserProfileKey(userJson))
