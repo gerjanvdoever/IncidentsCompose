@@ -191,13 +191,4 @@ class MyIncidentViewModel(
             incidentDataStore.clearSelectedIncident()
         }
     }
-
-    // OPTIONAL LATER: SAVE RECENT INCIDENTS FOR CACHING
-    fun saveRecentIncidents(incidents: List<IncidentResponse>) {
-        viewModelScope.launch {
-            incidentDataStore.saveRecentIncidents(incidents)
-        }
-    }
-
-    fun getRecentIncidents() = incidentDataStore.recentIncidents
 }
