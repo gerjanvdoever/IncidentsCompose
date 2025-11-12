@@ -7,6 +7,8 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.net.SocketTimeoutException
 
 suspend inline fun <reified T> performRequest(
     tokenPreferences: TokenPreferences,
@@ -29,8 +31,11 @@ suspend inline fun <reified T> performRequest(
             response.status.isSuccess() -> ApiResult.Success(response.body())
             else -> ApiResult.HttpError(response.status.value, response.status.description)
         }
-    } catch (e: Exception) {
+    } catch (e: SocketTimeoutException) {
+        ApiResult.Timeout(e)
+    } catch (e: IOException) {
         ApiResult.NetworkError(e)
+    } catch (e: Exception) {
+        ApiResult.Unknown(e)
     }
 }
-

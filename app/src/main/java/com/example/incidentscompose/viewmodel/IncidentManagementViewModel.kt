@@ -76,11 +76,20 @@ class IncidentManagementViewModel(
                         _showLoadMore.value = incidents.size > currentDisplayCount
                         applyFilters()
                     }
+
                     is ApiResult.Unauthorized -> _unauthorizedState.value = true
+
                     is ApiResult.HttpError -> _toastMessage.value =
                         "Failed to load incidents: ${result.message}"
+
                     is ApiResult.NetworkError -> _toastMessage.value =
                         "Network error: ${result.exception.message}"
+
+                    is ApiResult.Timeout -> _toastMessage.value =
+                        "Request timed out while loading incidents."
+
+                    is ApiResult.Unknown -> _toastMessage.value =
+                        "An unexpected error occurred while loading incidents."
                 }
             }
         }

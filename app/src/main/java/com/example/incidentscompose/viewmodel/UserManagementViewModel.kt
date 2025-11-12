@@ -1,8 +1,7 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.example.incidentscompose.data.model.ApiResult
-import com.example.incidentscompose.data.model.UserResponse
+import com.example.incidentscompose.data.model.*
 import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.ui.states.BaseViewModel
@@ -45,17 +44,25 @@ class UserManagementViewModel(
         }
     }
 
-    private fun loadUsers() {
+    fun loadUsers() {
         viewModelScope.launch {
             withLoading {
-                when (val result = repository.getAllUsers()) {
-                    is ApiResult.Success -> {
-                        _users.value = result.data
-                        _showLoadMore.value = result.data.size >= pageSize
+                try {
+                    when (val result = repository.getAllUsers()) {
+                        is ApiResult.Success -> {
+                            _users.value = result.data
+                            _showLoadMore.value = result.data.size >= pageSize
+                        }
+                        is ApiResult.HttpError -> _toastMessage.value =
+                            "Failed to load users: ${result.message}"
+                        is ApiResult.NetworkError -> _toastMessage.value =
+                            "Network error: ${result.exception.message ?: "Please try again"}"
+                        is ApiResult.Timeout -> _toastMessage.value = "Request timed out. Please try again."
+                        is ApiResult.Unknown -> _toastMessage.value = "Unexpected error occurred."
+                        is ApiResult.Unauthorized -> _unauthorizedState.value = true
                     }
-                    is ApiResult.HttpError -> _toastMessage.value = "Failed to load users: ${result.message}"
-                    is ApiResult.NetworkError -> _toastMessage.value = "Network error: ${result.exception.message}"
-                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                } catch (e: Exception) {
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
             }
         }
@@ -65,23 +72,37 @@ class UserManagementViewModel(
         viewModelScope.launch {
             withLoading {
                 currentPage++
-                when (val result = repository.getAllUsers()) {
-                    is ApiResult.Success -> {
-                        _users.value += result.data
-                        _showLoadMore.value = result.data.size >= pageSize
+                try {
+                    when (val result = repository.getAllUsers()) {
+                        is ApiResult.Success -> {
+                            _users.value += result.data
+                            _showLoadMore.value = result.data.size >= pageSize
+                        }
+                        is ApiResult.HttpError -> {
+                            currentPage--
+                            _toastMessage.value = "Failed to load more users: ${result.message}"
+                        }
+                        is ApiResult.NetworkError -> {
+                            currentPage--
+                            _toastMessage.value =
+                                "Network error: ${result.exception.message ?: "Please try again"}"
+                        }
+                        is ApiResult.Timeout -> {
+                            currentPage--
+                            _toastMessage.value = "Request timed out. Please try again."
+                        }
+                        is ApiResult.Unknown -> {
+                            currentPage--
+                            _toastMessage.value = "Unexpected error occurred."
+                        }
+                        is ApiResult.Unauthorized -> {
+                            currentPage--
+                            _unauthorizedState.value = true
+                        }
                     }
-                    is ApiResult.HttpError -> {
-                        currentPage--
-                        _toastMessage.value = "Failed to load more users: ${result.message}"
-                    }
-                    is ApiResult.NetworkError -> {
-                        currentPage--
-                        _toastMessage.value = "Network error: ${result.exception.message}"
-                    }
-                    is ApiResult.Unauthorized -> {
-                        currentPage--
-                        _unauthorizedState.value = true
-                    }
+                } catch (e: Exception) {
+                    currentPage--
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
             }
         }
@@ -90,16 +111,24 @@ class UserManagementViewModel(
     fun changeUserRole(userId: Long, newRole: String) {
         viewModelScope.launch {
             withLoading {
-                when (val result = repository.updateUserRole(userId, newRole)) {
-                    is ApiResult.Success -> {
-                        _users.value = _users.value.map { user ->
-                            if (user.id == userId.toString()) user.copy(role = newRole) else user
+                try {
+                    when (val result = repository.updateUserRole(userId, newRole)) {
+                        is ApiResult.Success -> {
+                            _users.value = _users.value.map { user ->
+                                if (user.id == userId.toString()) user.copy(role = newRole) else user
+                            }
+                            _toastMessage.value = "Role updated successfully"
                         }
-                        _toastMessage.value = "Role updated successfully"
+                        is ApiResult.HttpError -> _toastMessage.value =
+                            "Failed to update role: ${result.message}"
+                        is ApiResult.NetworkError -> _toastMessage.value =
+                            "Network error: ${result.exception.message ?: "Please try again"}"
+                        is ApiResult.Timeout -> _toastMessage.value = "Request timed out. Please try again."
+                        is ApiResult.Unknown -> _toastMessage.value = "Unexpected error occurred."
+                        is ApiResult.Unauthorized -> _unauthorizedState.value = true
                     }
-                    is ApiResult.HttpError -> _toastMessage.value = "Failed to update role: ${result.message}"
-                    is ApiResult.NetworkError -> _toastMessage.value = "Network error: ${result.exception.message}"
-                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                } catch (e: Exception) {
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
             }
         }
@@ -108,14 +137,22 @@ class UserManagementViewModel(
     fun deleteUser(userId: Long) {
         viewModelScope.launch {
             withLoading {
-                when (val result = repository.deleteUser(userId)) {
-                    is ApiResult.Success -> {
-                        _users.value = _users.value.filter { it.id != userId.toString() }
-                        _toastMessage.value = "User deleted successfully"
+                try {
+                    when (val result = repository.deleteUser(userId)) {
+                        is ApiResult.Success -> {
+                            _users.value = _users.value.filter { it.id != userId.toString() }
+                            _toastMessage.value = "User deleted successfully"
+                        }
+                        is ApiResult.HttpError -> _toastMessage.value =
+                            "Failed to delete user: ${result.message}"
+                        is ApiResult.NetworkError -> _toastMessage.value =
+                            "Network error: ${result.exception.message ?: "Please try again"}"
+                        is ApiResult.Timeout -> _toastMessage.value = "Request timed out. Please try again."
+                        is ApiResult.Unknown -> _toastMessage.value = "Unexpected error occurred."
+                        is ApiResult.Unauthorized -> _unauthorizedState.value = true
                     }
-                    is ApiResult.HttpError -> _toastMessage.value = "Failed to delete user: ${result.message}"
-                    is ApiResult.NetworkError -> _toastMessage.value = "Network error: ${result.exception.message}"
-                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                } catch (e: Exception) {
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
             }
         }

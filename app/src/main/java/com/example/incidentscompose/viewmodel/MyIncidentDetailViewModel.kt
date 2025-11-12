@@ -1,12 +1,9 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.example.incidentscompose.data.model.IncidentCategory
-import com.example.incidentscompose.data.model.IncidentResponse
-import com.example.incidentscompose.data.model.UpdateIncidentRequest
+import com.example.incidentscompose.data.model.*
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.store.IncidentDataStore
-import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +23,9 @@ class MyIncidentDetailViewModel(
 
     private val _deleteResult = MutableStateFlow<ApiResult<Unit>?>(null)
     val deleteResult: StateFlow<ApiResult<Unit>?> = _deleteResult.asStateFlow()
+
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
     fun updateIncident(
         incidentId: Long,
@@ -47,11 +47,31 @@ class MyIncidentDetailViewModel(
                     val result = incidentRepository.updateIncident(incidentId, updateRequest)
                     _updateResult.value = result
 
-                    if (result is ApiResult.Success) {
-                        incidentDataStore.saveSelectedIncident(result.data)
+                    when (result) {
+                        is ApiResult.Success -> {
+                            incidentDataStore.saveSelectedIncident(result.data)
+                        }
+                        is ApiResult.Timeout -> {
+                            _toastMessage.value = "Update request timed out. Please try again."
+                        }
+                        is ApiResult.Unknown -> {
+                            _toastMessage.value = "Unexpected error occurred while updating incident."
+                        }
+                        is ApiResult.HttpError -> {
+                            _toastMessage.value = "Failed to update incident: ${result.message}"
+                        }
+                        is ApiResult.NetworkError -> {
+                            _toastMessage.value =
+                                "Network error: ${result.exception.message ?: "Please try again"}"
+                        }
+                        is ApiResult.Unauthorized -> {
+                            _toastMessage.value = "You are not authorized to update this incident."
+                        }
                     }
                 } catch (e: Exception) {
+                    // Safety net for unexpected exceptions
                     _updateResult.value = ApiResult.NetworkError(e)
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
             }
         }
@@ -67,8 +87,19 @@ class MyIncidentDetailViewModel(
                 try {
                     val result = incidentRepository.deleteIncident(incidentId)
                     _deleteResult.value = result
+
+                    when (result) {
+                        is ApiResult.Success -> _toastMessage.value = "Incident deleted successfully."
+                        is ApiResult.Timeout -> _toastMessage.value = "Delete request timed out. Please try again."
+                        is ApiResult.Unknown -> _toastMessage.value = "Unexpected error occurred while deleting incident."
+                        is ApiResult.HttpError -> _toastMessage.value = "Failed to delete incident: ${result.message}"
+                        is ApiResult.NetworkError -> _toastMessage.value =
+                            "Network error: ${result.exception.message ?: "Please try again"}"
+                        is ApiResult.Unauthorized -> _toastMessage.value = "You are not authorized to delete this incident."
+                    }
                 } catch (e: Exception) {
                     _deleteResult.value = ApiResult.NetworkError(e)
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
             }
         }
@@ -84,5 +115,9 @@ class MyIncidentDetailViewModel(
         viewModelScope.launch {
             incidentDataStore.clearSelectedIncident()
         }
+    }
+
+    fun clearToastMessage() {
+        _toastMessage.value = null
     }
 }

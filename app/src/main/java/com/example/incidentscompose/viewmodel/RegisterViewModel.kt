@@ -20,7 +20,7 @@ class RegisterViewModel(
     val registerState: StateFlow<RegisterState> = _registerState.asStateFlow()
 
     fun register(username: String, password: String, email: String, confirmPassword: String) {
-
+        // Basic validation
         if (username.isBlank() || password.isBlank() || email.isBlank() || confirmPassword.isBlank()) {
             _registerState.value = RegisterState.Error("Please fill in all fields")
             return
@@ -47,23 +47,23 @@ class RegisterViewModel(
             try {
                 when (val result = userRepository.register(username, password, email, null)) {
                     is ApiResult.Success -> _registerState.value = RegisterState.Success
-                    is ApiResult.HttpError -> {
-                        val message = if (result.code == 401) "Unauthorized access." else "Registration failed: ${result.message}"
-                        _registerState.value = RegisterState.Error(message)
-                    }
-                    is ApiResult.NetworkError -> {
-                        _registerState.value = RegisterState.Error("Network error: ${result.exception.message ?: "Please try again later"}")
-                    }
-                    else -> _registerState.value = RegisterState.Error("Unknown error occurred")
+                    is ApiResult.HttpError -> _registerState.value =
+                        RegisterState.Error("Registration failed: ${result.message} (code ${result.code})")
+                    is ApiResult.NetworkError -> _registerState.value =
+                        RegisterState.Error("Network error: ${result.exception.message ?: "Please try again"}")
+                    is ApiResult.Timeout -> _registerState.value =
+                        RegisterState.Error("Registration request timed out. Please try again.")
+                    is ApiResult.Unauthorized -> {} // Won't ever happen
+                    is ApiResult.Unknown -> _registerState.value =
+                        RegisterState.Error("Unexpected error occurred during registration.")
                 }
             } catch (e: Exception) {
-                val errorMessage = when (e) {
-                    is ConnectException, is SocketTimeoutException, is UnknownHostException -> {
+                val message = when (e) {
+                    is ConnectException, is SocketTimeoutException, is UnknownHostException ->
                         "Network error: Unable to connect to server."
-                    }
                     else -> "Unexpected error: ${e.message ?: "Please try again later"}"
                 }
-                _registerState.value = RegisterState.Error(errorMessage)
+                _registerState.value = RegisterState.Error(message)
             }
         }
     }
@@ -72,9 +72,8 @@ class RegisterViewModel(
         _registerState.value = RegisterState.Idle
     }
 
-    private fun isValidEmail(email: String): Boolean {
-        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    }
+    private fun isValidEmail(email: String): Boolean =
+        android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
 }
 
 sealed class RegisterState {

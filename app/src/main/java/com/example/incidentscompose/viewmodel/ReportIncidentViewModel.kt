@@ -82,57 +82,74 @@ class ReportIncidentViewModel(
 
         viewModelScope.launch {
             withLoading {
-                // Create the incident (no authorization required)
-                when (val result = repository.createIncident(
-                    CreateIncidentRequest(
-                        category = state.selectedCategory.name,
-                        description = state.description,
-                        latitude = state.latitude,
-                        longitude = state.longitude,
-                        priority = "LOW"
-                    )
-                )) {
-                    is ApiResult.Success -> {
-                        val incident = result.data
+                try {
+                    // Create the incident
+                    when (val result = repository.createIncident(
+                        CreateIncidentRequest(
+                            category = state.selectedCategory.name,
+                            description = state.description,
+                            latitude = state.latitude,
+                            longitude = state.longitude,
+                            priority = "LOW"
+                        )
+                    )) {
+                        is ApiResult.Success -> {
+                            val incident = result.data
 
-                        // Upload photos
-                        state.photos.forEach { uriString ->
-                            val file = PhotoUtils.getFileFromUri(context, uriString.toUri())
-                            if (file != null) {
-                                when (val uploadResult = repository.uploadImageToIncident(
-                                    incidentId = incident.id,
-                                    imageFile = file,
-                                    description = ""
-                                )) {
-                                    is ApiResult.Success -> Unit
-                                    is ApiResult.HttpError,
-                                    is ApiResult.NetworkError -> _uiState.update {
-                                        it.copy(errorMessage = "Failed to upload image: ${file.name}")
+                            // Upload photos
+                            state.photos.forEach { uriString ->
+                                val file = PhotoUtils.getFileFromUri(context, uriString.toUri())
+                                if (file != null) {
+                                    when (val uploadResult = repository.uploadImageToIncident(
+                                        incidentId = incident.id,
+                                        imageFile = file,
+                                        description = ""
+                                    )) {
+                                        is ApiResult.Success -> Unit
+                                        is ApiResult.HttpError ->
+                                            _uiState.update { it.copy(errorMessage = "Failed to upload image: ${file.name}") }
+                                        is ApiResult.NetworkError ->
+                                            _uiState.update { it.copy(errorMessage = "Network error uploading image: ${file.name}") }
+                                        is ApiResult.Timeout ->
+                                            _uiState.update { it.copy(errorMessage = "Image upload timed out: ${file.name}") }
+                                        is ApiResult.Unknown ->
+                                            _uiState.update { it.copy(errorMessage = "Unknown error uploading image: ${file.name}") }
+                                        is ApiResult.Unauthorized -> Unit // Should never happen here
                                     }
-                                    is ApiResult.Unauthorized -> {}
                                 }
                             }
-                        }
 
-                        _uiState.update {
-                            it.copy(
-                                showSuccessDialog = true,
-                                createdIncident = incident,
-                                errorMessage = null
-                            )
+                            _uiState.update {
+                                it.copy(
+                                    showSuccessDialog = true,
+                                    createdIncident = incident,
+                                    errorMessage = null
+                                )
+                            }
                         }
+                        is ApiResult.HttpError -> _uiState.update {
+                            it.copy(errorMessage = "Failed to report incident: ${result.message}")
+                        }
+                        is ApiResult.NetworkError -> _uiState.update {
+                            it.copy(errorMessage = "Network error: ${result.exception.message}")
+                        }
+                        is ApiResult.Timeout -> _uiState.update {
+                            it.copy(errorMessage = "Request timed out. Please try again.")
+                        }
+                        is ApiResult.Unknown -> _uiState.update {
+                            it.copy(errorMessage = "Unexpected error occurred while reporting incident.")
+                        }
+                        is ApiResult.Unauthorized -> Unit // Should never happen
                     }
-                    is ApiResult.HttpError -> _uiState.update {
-                        it.copy(errorMessage = "Failed to report incident: ${result.message}")
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(errorMessage = "Unexpected error: ${e.message ?: "Please try again"}")
                     }
-                    is ApiResult.NetworkError -> _uiState.update {
-                        it.copy(errorMessage = "Network error: ${result.exception.message}")
-                    }
-                    is ApiResult.Unauthorized -> {}
                 }
             }
         }
     }
+
 
     fun dismissSuccessDialog() =
         _uiState.update { it.copy(showSuccessDialog = false) }

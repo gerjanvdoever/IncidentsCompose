@@ -61,6 +61,7 @@ fun MyIncidentListScreen(
     backStack: NavBackStack<NavKey>
 ) {
     val user by viewModel.user.collectAsState()
+    val unauthorized by viewModel.unauthorizedState.collectAsState()
     val incidents by viewModel.incidents.collectAsState()
     val logoutEvent by viewModel.logoutEvent.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -75,6 +76,10 @@ fun MyIncidentListScreen(
                     viewModel.refreshIncidents()
                 }
             }
+    }
+
+    LaunchedEffect(unauthorized) {
+        onLogout()
     }
 
     LaunchedEffect(logoutEvent) {

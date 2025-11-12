@@ -7,12 +7,10 @@ import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.lang.Exception
 
 class IncidentDetailViewModel(
     private val incidentRepository: IncidentRepository,
@@ -65,6 +63,10 @@ class IncidentDetailViewModel(
                         "Failed to load incident: ${result.message}"
                     is ApiResult.NetworkError -> _toastMessage.value =
                         "Network error: ${result.exception.message}"
+                    is ApiResult.Timeout -> _toastMessage.value =
+                        "Request timed out while loading incident."
+                    is ApiResult.Unknown -> _toastMessage.value =
+                        "Unexpected error occurred while loading incident."
                 }
             }
         }
@@ -80,28 +82,17 @@ class IncidentDetailViewModel(
         _userFetchTimeout.value = false
 
         userFetchJob = viewModelScope.launch {
-            val timeoutJob = launch {
-                delay(5000)
-                if (_reportedUser.value == null) {
-                    _userFetchTimeout.value = true
-                }
-            }
-
-            try {
-                withLoading {
-                    when (val result = userRepository.getUserById(userId)) {
-                        is ApiResult.Success -> {
-                            _reportedUser.value = result.data
-                            timeoutJob.cancel()
-                        }
-                        is ApiResult.Unauthorized -> _unauthorizedState.value = true
-                        is ApiResult.HttpError -> _userFetchTimeout.value = true
-                        is ApiResult.NetworkError -> _userFetchTimeout.value = true
+            withLoading {
+                when (val result = userRepository.getUserById(userId)) {
+                    is ApiResult.Success -> {
+                        _reportedUser.value = result.data
                     }
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                    is ApiResult.HttpError -> _userFetchTimeout.value = true
+                    is ApiResult.NetworkError -> _userFetchTimeout.value = true
+                    is ApiResult.Timeout -> _userFetchTimeout.value = true
+                    is ApiResult.Unknown -> _userFetchTimeout.value = true
                 }
-            } catch (e: Exception) {
-                timeoutJob.cancel()
-                _userFetchTimeout.value = true
             }
         }
     }
@@ -125,6 +116,10 @@ class IncidentDetailViewModel(
                         "Failed to update priority: ${result.message}"
                     is ApiResult.NetworkError -> _toastMessage.value =
                         "Network error: ${result.exception.message}"
+                    is ApiResult.Timeout -> _toastMessage.value =
+                        "Request timed out while updating priority."
+                    is ApiResult.Unknown -> _toastMessage.value =
+                        "Unexpected error occurred while updating priority."
                 }
             }
         }
@@ -143,6 +138,10 @@ class IncidentDetailViewModel(
                         "Failed to update status: ${result.message}"
                     is ApiResult.NetworkError -> _toastMessage.value =
                         "Network error: ${result.exception.message}"
+                    is ApiResult.Timeout -> _toastMessage.value =
+                        "Request timed out while updating status."
+                    is ApiResult.Unknown -> _toastMessage.value =
+                        "Unexpected error occurred while updating status."
                 }
             }
         }
@@ -158,6 +157,10 @@ class IncidentDetailViewModel(
                         "Failed to delete incident: ${result.message}"
                     is ApiResult.NetworkError -> _toastMessage.value =
                         "Network error: ${result.exception.message}"
+                    is ApiResult.Timeout -> _toastMessage.value =
+                        "Request timed out while deleting incident."
+                    is ApiResult.Unknown -> _toastMessage.value =
+                        "Unexpected error occurred while deleting incident."
                 }
             }
         }

@@ -41,6 +41,9 @@ class MyIncidentListViewModel(
     private val _unauthorizedState = MutableStateFlow(false)
     val unauthorizedState: StateFlow<Boolean> = _unauthorizedState.asStateFlow()
 
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
+
     init {
         loadUserRole()
         loadUserData()
@@ -55,25 +58,50 @@ class MyIncidentListViewModel(
     private fun loadUserData() {
         viewModelScope.launch {
             _isLoading.value = true
-
             try {
                 when (val userResult = userRepository.getCurrentUser()) {
                     is ApiResult.Success -> {
                         _user.value = userResult.data
-
-                        when (val incidentsResult = incidentRepository.getMyIncidents()) {
-                            is ApiResult.Success -> _incidents.value = incidentsResult.data
-                            is ApiResult.HttpError -> handleIncidentError(incidentsResult)
-                            is ApiResult.NetworkError -> handleIncidentError(incidentsResult)
-                            is ApiResult.Unauthorized -> logout()
-                        }
+                        loadUserIncidents()
                     }
+
                     is ApiResult.HttpError -> handleUserError(userResult)
                     is ApiResult.NetworkError -> handleUserError(userResult)
+                    is ApiResult.Timeout -> {
+                        _toastMessage.value = "Fetching user data timed out."
+                        _user.value = null
+                    }
+                    is ApiResult.Unknown -> {
+                        _toastMessage.value = "Unexpected error fetching user data."
+                        _user.value = null
+                    }
                     is ApiResult.Unauthorized -> logout()
                 }
             } catch (e: Exception) {
+                // Safety net
+                _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 logout()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private fun loadUserIncidents() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                when (val incidentsResult = incidentRepository.getMyIncidents()) {
+                    is ApiResult.Success -> _incidents.value = incidentsResult.data
+
+                    is ApiResult.HttpError -> handleIncidentError(incidentsResult)
+                    is ApiResult.NetworkError -> handleIncidentError(incidentsResult)
+                    is ApiResult.Timeout -> _toastMessage.value = "Fetching incidents timed out."
+                    is ApiResult.Unknown -> _toastMessage.value = "Unexpected error fetching incidents."
+                    is ApiResult.Unauthorized -> logout()
+                }
+            } catch (e: Exception) {
+                _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
             } finally {
                 _isLoading.value = false
             }
@@ -102,7 +130,6 @@ class MyIncidentListViewModel(
             try {
                 authRepository.logout()
             } finally {
-                // Clear local state regardless of logout success
                 _user.value = null
                 _incidents.value = emptyList()
                 _logoutEvent.value = true
@@ -122,18 +149,10 @@ class MyIncidentListViewModel(
     }
 
     fun refreshIncidents() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                when (val incidentsResult = incidentRepository.getMyIncidents()) {
-                    is ApiResult.Success -> _incidents.value = incidentsResult.data
-                    is ApiResult.HttpError -> handleIncidentError(incidentsResult)
-                    is ApiResult.NetworkError -> handleIncidentError(incidentsResult)
-                    is ApiResult.Unauthorized -> handleUserError(incidentsResult)
-                }
-            } finally {
-                _isLoading.value = false
-            }
-        }
+        loadUserIncidents()
+    }
+
+    fun clearToastMessage() {
+        _toastMessage.value = null
     }
 }

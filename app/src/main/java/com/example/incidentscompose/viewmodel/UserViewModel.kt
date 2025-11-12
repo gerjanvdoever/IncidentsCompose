@@ -1,8 +1,7 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.example.incidentscompose.data.model.ApiResult
-import com.example.incidentscompose.data.model.UpdateUserRequest
+import com.example.incidentscompose.data.model.*
 import com.example.incidentscompose.data.repository.UserRepository
 import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,11 +39,18 @@ class UserViewModel(
                     avatar = null
                 )
 
-                when (val result = userRepository.updateCurrentUser(updateRequest)) {
-                    is ApiResult.Success -> _updateSuccess.value = true
-                    is ApiResult.HttpError -> _errorMessage.value = "Update failed: ${result.message}"
-                    is ApiResult.NetworkError -> _errorMessage.value = "Network error: ${result.exception.message}"
-                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                try {
+                    when (val result = userRepository.updateCurrentUser(updateRequest)) {
+                        is ApiResult.Success -> _updateSuccess.value = true
+                        is ApiResult.HttpError -> _errorMessage.value = "Update failed: ${result.message}"
+                        is ApiResult.NetworkError -> _errorMessage.value =
+                            "Network error: ${result.exception.message ?: "Please try again"}"
+                        is ApiResult.Timeout -> _errorMessage.value = "Request timed out. Please try again."
+                        is ApiResult.Unknown -> _errorMessage.value = "Unexpected error occurred."
+                        is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                    }
+                } catch (e: Exception) {
+                    _errorMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
             }
         }

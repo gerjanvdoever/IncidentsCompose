@@ -16,7 +16,9 @@ class AuthRepository(
             }
             is ApiResult.HttpError -> ApiResult.HttpError(result.code, result.message)
             is ApiResult.NetworkError -> ApiResult.NetworkError(result.exception)
-            ApiResult.Unauthorized -> ApiResult.Unauthorized // Will never throw
+            is ApiResult.Timeout -> ApiResult.Timeout(result.exception)
+            is ApiResult.Unknown -> ApiResult.Unknown(result.exception)
+            ApiResult.Unauthorized -> ApiResult.Unauthorized
         }
     }
 
@@ -24,6 +26,5 @@ class AuthRepository(
 
     suspend fun logout() {
         tokenPreferences.clearToken()
-
     }
 }
