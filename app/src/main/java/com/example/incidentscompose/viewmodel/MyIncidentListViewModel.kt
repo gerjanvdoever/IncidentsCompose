@@ -32,9 +32,6 @@ class MyIncidentListViewModel(
     private val _logoutEvent = MutableStateFlow(false)
     val logoutEvent: StateFlow<Boolean> = _logoutEvent.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole.asStateFlow()
 
@@ -57,53 +54,50 @@ class MyIncidentListViewModel(
 
     private fun loadUserData() {
         viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                when (val userResult = userRepository.getCurrentUser()) {
-                    is ApiResult.Success -> {
-                        _user.value = userResult.data
-                        loadUserIncidents()
-                    }
+            withLoading {
+                try {
+                    when (val userResult = userRepository.getCurrentUser()) {
+                        is ApiResult.Success -> {
+                            _user.value = userResult.data
+                            loadUserIncidents()
+                        }
 
-                    is ApiResult.HttpError -> handleUserError(userResult)
-                    is ApiResult.NetworkError -> handleUserError(userResult)
-                    is ApiResult.Timeout -> {
-                        _toastMessage.value = "Fetching user data timed out."
-                        _user.value = null
+                        is ApiResult.HttpError -> handleUserError(userResult)
+                        is ApiResult.NetworkError -> handleUserError(userResult)
+                        is ApiResult.Timeout -> {
+                            _toastMessage.value = "Fetching user data timed out."
+                            _user.value = null
+                        }
+                        is ApiResult.Unknown -> {
+                            _toastMessage.value = "Unexpected error fetching user data."
+                            _user.value = null
+                        }
+                        is ApiResult.Unauthorized -> logout()
                     }
-                    is ApiResult.Unknown -> {
-                        _toastMessage.value = "Unexpected error fetching user data."
-                        _user.value = null
-                    }
-                    is ApiResult.Unauthorized -> logout()
+                } catch (e: Exception) {
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
+                    logout()
                 }
-            } catch (e: Exception) {
-                // Safety net
-                _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
-                logout()
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
     private fun loadUserIncidents() {
         viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                when (val incidentsResult = incidentRepository.getMyIncidents()) {
-                    is ApiResult.Success -> _incidents.value = incidentsResult.data
+            withLoading {
+                try {
+                    when (val incidentsResult = incidentRepository.getMyIncidents()) {
+                        is ApiResult.Success -> _incidents.value = incidentsResult.data
 
-                    is ApiResult.HttpError -> handleIncidentError(incidentsResult)
-                    is ApiResult.NetworkError -> handleIncidentError(incidentsResult)
-                    is ApiResult.Timeout -> _toastMessage.value = "Fetching incidents timed out."
-                    is ApiResult.Unknown -> _toastMessage.value = "Unexpected error fetching incidents."
-                    is ApiResult.Unauthorized -> logout()
+                        is ApiResult.HttpError -> handleIncidentError(incidentsResult)
+                        is ApiResult.NetworkError -> handleIncidentError(incidentsResult)
+                        is ApiResult.Timeout -> _toastMessage.value = "Fetching incidents timed out."
+                        is ApiResult.Unknown -> _toastMessage.value = "Unexpected error fetching incidents."
+                        is ApiResult.Unauthorized -> logout()
+                    }
+                } catch (e: Exception) {
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
-            } catch (e: Exception) {
-                _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
-            } finally {
-                _isLoading.value = false
             }
         }
     }
@@ -126,14 +120,14 @@ class MyIncidentListViewModel(
 
     fun logout() {
         viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                authRepository.logout()
-            } finally {
-                _user.value = null
-                _incidents.value = emptyList()
-                _logoutEvent.value = true
-                _isLoading.value = false
+            withLoading {
+                try {
+                    authRepository.logout()
+                } finally {
+                    _user.value = null
+                    _incidents.value = emptyList()
+                    _logoutEvent.value = true
+                }
             }
         }
     }

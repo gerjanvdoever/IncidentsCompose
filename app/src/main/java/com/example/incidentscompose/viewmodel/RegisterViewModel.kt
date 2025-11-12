@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.net.ConnectException
-import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
 class RegisterViewModel(
@@ -20,7 +19,6 @@ class RegisterViewModel(
     val registerState: StateFlow<RegisterState> = _registerState.asStateFlow()
 
     fun register(username: String, password: String, email: String, confirmPassword: String) {
-        // Basic validation
         if (username.isBlank() || password.isBlank() || email.isBlank() || confirmPassword.isBlank()) {
             _registerState.value = RegisterState.Error("Please fill in all fields")
             return
@@ -41,29 +39,36 @@ class RegisterViewModel(
             return
         }
 
-        _registerState.value = RegisterState.Loading
-
         viewModelScope.launch {
-            try {
-                when (val result = userRepository.register(username, password, email, null)) {
-                    is ApiResult.Success -> _registerState.value = RegisterState.Success
-                    is ApiResult.HttpError -> _registerState.value =
-                        RegisterState.Error("Registration failed: ${result.message} (code ${result.code})")
-                    is ApiResult.NetworkError -> _registerState.value =
-                        RegisterState.Error("Network error: ${result.exception.message ?: "Please try again"}")
-                    is ApiResult.Timeout -> _registerState.value =
-                        RegisterState.Error("Registration request timed out. Please try again.")
-                    is ApiResult.Unauthorized -> {} // Won't ever happen
-                    is ApiResult.Unknown -> _registerState.value =
-                        RegisterState.Error("Unexpected error occurred during registration.")
+            withLoading {
+                try {
+                    val result = userRepository.register(username, password, email, null)
+                    _registerState.value = when (result) {
+                        is ApiResult.Success -> RegisterState.Success
+                        is ApiResult.HttpError -> RegisterState.Error(
+                            "Registration failed: ${result.message} (code ${result.code})"
+                        )
+                        is ApiResult.NetworkError -> RegisterState.Error(
+                            "Network error: ${result.exception.message ?: "Please try again"}"
+                        )
+                        is ApiResult.Timeout -> RegisterState.Error(
+                            "Registration request timed out. Please try again."
+                        )
+                        is ApiResult.Unauthorized -> RegisterState.Error(
+                            "You are not authorized to perform this action."
+                        )
+                        is ApiResult.Unknown -> RegisterState.Error(
+                            "Unexpected error occurred during registration."
+                        )
+                    }
+                } catch (e: Exception) {
+                    val message = when (e) {
+                        is ConnectException, is UnknownHostException ->
+                            "Network error: Unable to connect to server."
+                        else -> "Unexpected error: ${e.message ?: "Please try again later"}"
+                    }
+                    _registerState.value = RegisterState.Error(message)
                 }
-            } catch (e: Exception) {
-                val message = when (e) {
-                    is ConnectException, is SocketTimeoutException, is UnknownHostException ->
-                        "Network error: Unable to connect to server."
-                    else -> "Unexpected error: ${e.message ?: "Please try again later"}"
-                }
-                _registerState.value = RegisterState.Error(message)
             }
         }
     }
@@ -77,8 +82,7 @@ class RegisterViewModel(
 }
 
 sealed class RegisterState {
-    data object Idle : RegisterState()
-    data object Loading : RegisterState()
-    data object Success : RegisterState()
+    object Idle : RegisterState()
+    object Success : RegisterState()
     data class Error(val message: String) : RegisterState()
 }

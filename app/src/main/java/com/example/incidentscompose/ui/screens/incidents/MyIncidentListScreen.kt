@@ -63,7 +63,7 @@ fun MyIncidentListScreen(
     val user by viewModel.user.collectAsState()
     val incidents by viewModel.incidents.collectAsState()
     val logoutEvent by viewModel.logoutEvent.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val isBusy by viewModel.isBusy.collectAsState()
     var isDropdownVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val userRole by viewModel.userRole.collectAsState()
@@ -390,7 +390,7 @@ fun MyIncidentListScreen(
                 }
             }
 
-            LoadingOverlay(isLoading = isLoading)
+            LoadingOverlay(isLoading = isBusy)
         }
     }
 }

@@ -50,8 +50,6 @@ fun MyIncidentDetailScreen(
     viewModel: MyIncidentDetailViewModel = koinViewModel()
 ) {
     var incident by remember { mutableStateOf<IncidentResponse?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-
     var selectedCategory by remember { mutableStateOf<IncidentCategory?>(null) }
     var editableDescription by remember { mutableStateOf("") }
 
@@ -60,19 +58,19 @@ fun MyIncidentDetailScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val selectedIncidentFlow = viewModel.getSelectedIncident()
+    val selectedIncidentFlow = viewModel.selectedIncident
     val isBusy by viewModel.isBusy.collectAsState()
     val updateResult by viewModel.updateResult.collectAsState()
     val deleteResult by viewModel.deleteResult.collectAsState()
 
-    LaunchedEffect(selectedIncidentFlow) {
+    // Collect incident from the flow
+    LaunchedEffect(Unit) {
         selectedIncidentFlow.collect { selectedIncident ->
             incident = selectedIncident
             selectedIncident?.let {
                 selectedCategory = IncidentCategoryUtils.safeValueOf(it.category)
                 editableDescription = it.description
             }
-            isLoading = false
         }
     }
 
@@ -89,7 +87,10 @@ fun MyIncidentDetailScreen(
                     "$failureUpdateMessage ${when (result) {
                         is ApiResult.HttpError -> result.message
                         is ApiResult.NetworkError -> result.exception.message
-                        is ApiResult.Unauthorized -> onNavigateBack()
+                        is ApiResult.Unauthorized -> {
+                            onNavigateBack()
+                            ""
+                        }
                         else -> "Unknown error"
                     }}",
                     Toast.LENGTH_LONG
@@ -98,7 +99,6 @@ fun MyIncidentDetailScreen(
             viewModel.resetUpdateResult()
         }
     }
-
 
     val successDeleteMessage = stringResource(R.string.incident_deleted_successfully)
     val failureDeleteMessage = stringResource(R.string.failed_to_delete_incident)
@@ -114,7 +114,10 @@ fun MyIncidentDetailScreen(
                     "$failureDeleteMessage ${when (result) {
                         is ApiResult.HttpError -> result.message
                         is ApiResult.NetworkError -> result.exception.message
-                        is ApiResult.Unauthorized -> onNavigateBack()
+                        is ApiResult.Unauthorized -> {
+                            onNavigateBack()
+                            ""
+                        }
                         else -> "Unknown error"
                     }}",
                     Toast.LENGTH_LONG
@@ -289,9 +292,7 @@ fun MyIncidentDetailScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.surface)
         ) {
-            if (isLoading) {
-                LoadingOverlay(isLoading = true)
-            } else if (incident == null) {
+            if (incident == null) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -733,7 +734,6 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
-                                // Fallback when no valid URL
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
