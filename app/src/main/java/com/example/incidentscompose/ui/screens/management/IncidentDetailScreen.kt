@@ -130,7 +130,7 @@ fun IncidentDetailScreen(
                     )
                 ) {
                     Text(
-                        text = "Delete",
+                        text = stringResource(R.string.delete),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
                     )
@@ -141,7 +141,7 @@ fun IncidentDetailScreen(
                     onClick = { showDeleteConfirmDialog = false }
                 ) {
                     Text(
-                        text = "Cancel",
+                        text = stringResource(R.string.cancel),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
                     )
@@ -388,7 +388,7 @@ private fun IncidentManagementHeaderCard(
             // PRIORITY DROPDOWN
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "PRIORITY",
+                    text = stringResource(R.string.priority),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF6B7280),
@@ -451,7 +451,7 @@ private fun IncidentManagementHeaderCard(
             // STATUS DROPDOWN
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "STATUS",
+                    text = stringResource(R.string.status),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF6B7280),
@@ -531,23 +531,23 @@ private fun IncidentManagementHeaderCard(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 DateInfoRow(
-                    label = "CREATED",
+                    label = stringResource(R.string.created),
                     date = formatDateForDisplay(incident.createdAt)
                 )
 
                 DateInfoRow(
-                    label = "UPDATED",
+                    label = stringResource(R.string.updated),
                     date = formatDateForDisplay(incident.updatedAt)
                 )
 
                 DateInfoRow(
-                    label = "DUE",
+                    label = stringResource(R.string.due),
                     date = formatDateForDisplay(incident.dueAt)
                 )
 
                 if (incident.completedAt != null) {
                     DateInfoRow(
-                        label = "COMPLETED",
+                        label = stringResource(R.string.completed),
                         date = formatDateForDisplay(incident.completedAt),
                         icon = Icons.Outlined.CheckCircle
                     )
@@ -628,7 +628,7 @@ private fun ReporterInfoCard(
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = "REPORTED BY",
+                    text = stringResource(R.string.reported_by),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF6B7280),
@@ -656,7 +656,7 @@ private fun ReporterInfoCard(
                                 modifier = Modifier.size(32.dp)
                             )
                             Text(
-                                text = "Anonymous Report",
+                                text = stringResource(R.string.anonymous_report),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFF92400E)
@@ -686,13 +686,13 @@ private fun ReporterInfoCard(
                                 modifier = Modifier.size(32.dp)
                             )
                             Text(
-                                text = "Failed to retrieve user information",
+                                text = stringResource(R.string.failed_to_retrieve_user_information),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFFDC2626)
                             )
                             Text(
-                                text = "Request timed out. Please try again.",
+                                text = stringResource(R.string.request_timed_out_please_try_again),
                                 fontSize = 12.sp,
                                 color = Color(0xFF991B1B)
                             )
@@ -718,7 +718,7 @@ private fun ReporterInfoCard(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Username",
+                                    text = stringResource(R.string.username),
                                     fontSize = 13.sp,
                                     color = Color(0xFF6B7280),
                                     fontWeight = FontWeight.Medium
@@ -736,7 +736,7 @@ private fun ReporterInfoCard(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Email",
+                                    text = stringResource(R.string.email),
                                     fontSize = 13.sp,
                                     color = Color(0xFF6B7280),
                                     fontWeight = FontWeight.Medium
@@ -889,7 +889,7 @@ private fun IncidentImagesCard(
                             if (!imageUrl.isNullOrBlank()) {
                                 AsyncImage(
                                     model = imageUrl,
-                                    contentDescription = "Incident image ${index + 1}",
+                                    contentDescription = stringResource(R.string.incident_image) + "${index + 1}",
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -901,7 +901,7 @@ private fun IncidentImagesCard(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "No image",
+                                        text = stringResource(R.string.no_image),
                                         color = Color(0xFF9CA3AF)
                                     )
                                 }

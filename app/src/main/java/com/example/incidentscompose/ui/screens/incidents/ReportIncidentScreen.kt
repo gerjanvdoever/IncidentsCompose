@@ -276,7 +276,7 @@ fun ImageSourceDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Add Photo",
+                    text = stringResource(R.string.add_photo),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -294,7 +294,7 @@ fun ImageSourceDialog(
                     )
                 ) {
                     Text(
-                        "Take Photo",
+                        stringResource(R.string.take_photo),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -312,7 +312,7 @@ fun ImageSourceDialog(
                     )
                 ) {
                     Text(
-                        "Choose from Gallery",
+                        stringResource(R.string.choose_from_gallery),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -322,7 +322,7 @@ fun ImageSourceDialog(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         }
@@ -355,7 +355,7 @@ fun PermissionDeniedDialog(
                 )
 
                 Text(
-                    text = "Permission Required",
+                    text = stringResource(R.string.permission_required),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -363,7 +363,7 @@ fun PermissionDeniedDialog(
                 )
 
                 Text(
-                    text = "To add photos, please grant camera and storage permissions in your device settings.",
+                    text = stringResource(R.string.to_add_photos_please_grant_camera_and_storage_permissions_in_your_device_settings),
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -382,7 +382,7 @@ fun PermissionDeniedDialog(
                     )
                 ) {
                     Text(
-                        "OK",
+                        stringResource(R.string.ok),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -624,7 +624,7 @@ fun DescriptionInputCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Provide a short but detailed description",
+                text = stringResource(R.string.provide_a_short_but_detailed_description),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -633,7 +633,7 @@ fun DescriptionInputCard(
             OutlinedTextField(
                 value = description,
                 onValueChange = onDescriptionChange,
-                placeholder = { Text("What exactly did you observe?") },
+                placeholder = { Text(stringResource(R.string.what_exactly_did_you_observe)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 100.dp),
@@ -673,13 +673,13 @@ fun PhotoUploadCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Can you please add some photos?",
+                    text = stringResource(R.string.can_you_please_add_some_photos),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Visual evidence helps us respond more effectively",
+                    text = stringResource(R.string.visual_evidence_helps_us_respond_more_effectively),
                     fontSize = 13.sp,
                     color = Color(0xFF656D76)
                 )
@@ -722,7 +722,7 @@ fun PhotoUploadCard(
                             )
                         }
                         Text(
-                            text = "Add Photo",
+                            text = stringResource(R.string.add_photo),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF656D76)
@@ -791,7 +791,7 @@ fun ReportSuccessDialog(
             ) {
                 Icon(
                     imageVector = Icons.Filled.CheckCircle,
-                    contentDescription = "Success",
+                    contentDescription = stringResource(R.string.success),
                     modifier = Modifier.size(64.dp),
                     tint = Color(0xFF10B981)
                 )
@@ -801,7 +801,7 @@ fun ReportSuccessDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Thank You!",
+                        text = stringResource(R.string.thank_you),
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -809,7 +809,7 @@ fun ReportSuccessDialog(
                     )
 
                     Text(
-                        text = "Your incident report has been successfully submitted. Our team will review it shortly.",
+                        text = stringResource(R.string.your_incident_report_has_been_successfully_submitted_our_team_will_review_it_shortly),
                         fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -833,7 +833,7 @@ fun ReportSuccessDialog(
                     )
                 ) {
                     Text(
-                        "Continue",
+                        stringResource(R.string.continue_button),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold
                     )

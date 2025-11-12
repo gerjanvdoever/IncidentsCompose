@@ -11,10 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.navigation.IncidentListKey
 import com.example.incidentscompose.navigation.IncidentMapKey
@@ -118,7 +120,7 @@ fun IncidentListScreen(
                                             containerColor = MaterialTheme.colorScheme.primary
                                         )
                                     ) {
-                                        Text("Load More")
+                                        Text(stringResource(R.string.load_more))
                                     }
                                 }
                             }
@@ -204,7 +206,7 @@ fun IncidentCard(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = "Due: ${IncidentDisplayHelper.formatDateForDisplay(incident.dueAt)}",
+                            text = stringResource(R.string.due) + ": " + IncidentDisplayHelper.formatDateForDisplay(incident.dueAt),
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -271,13 +273,13 @@ fun EmptyState() {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "No incidents found",
+                text = stringResource(R.string.no_incidents_found),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Try adjusting your search or filters",
+                text = stringResource(R.string.try_adjusting_your_search_or_filters),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

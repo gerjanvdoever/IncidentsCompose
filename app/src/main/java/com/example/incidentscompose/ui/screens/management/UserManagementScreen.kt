@@ -56,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -142,7 +143,7 @@ fun UserManagementScreen(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "User Management",
+                    text = stringResource(R.string.user_management),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -161,7 +162,9 @@ fun UserManagementScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (searchQuery.isBlank()) "No users found" else "No users match your search",
+                            text = if (searchQuery.isBlank()) stringResource(R.string.no_users_found) else stringResource(
+                                R.string.no_users_match_your_search
+                            ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -195,7 +198,7 @@ fun UserManagementScreen(
                                         .padding(vertical = 16.dp),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Text("Load More Users")
+                                    Text(stringResource(R.string.load_more_users))
                                 }
                             }
                         }
@@ -222,14 +225,14 @@ fun SearchBar(
             .clip(RoundedCornerShape(12.dp)),
         placeholder = {
             Text(
-                "Search by name, email, or role",
+                stringResource(R.string.search_by_name_email_or_role),
                 style = MaterialTheme.typography.bodyMedium
             )
         },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Search",
+                contentDescription = stringResource(R.string.search),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
@@ -490,14 +493,17 @@ fun DeleteConfirmationDialog(
         },
         title = {
             Text(
-                text = "Delete User?",
+                text = stringResource(R.string.delete_user),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             Text(
-                text = "Are you sure you want to delete \"$userName\"? This action cannot be undone.",
+                text = stringResource(
+                    R.string.are_you_sure_you_want_to_delete_this_action_cannot_be_undone,
+                    userName
+                ),
                 style = MaterialTheme.typography.bodyMedium
             )
         },
@@ -508,12 +514,12 @@ fun DeleteConfirmationDialog(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Delete")
+                Text(stringResource(R.string.delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

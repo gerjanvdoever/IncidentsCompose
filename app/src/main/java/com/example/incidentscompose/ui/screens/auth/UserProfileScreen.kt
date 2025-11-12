@@ -251,7 +251,7 @@ fun UserProfileScreen(
                     enabled = !isBusy
                 ) {
                     Text(
-                        text = "Cancel",
+                        text = stringResource(R.string.cancel),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium
                     )

@@ -19,9 +19,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.incidentscompose.R
 import com.example.incidentscompose.util.IncidentDisplayHelper
 import com.example.incidentscompose.viewmodel.IncidentManagementViewModel
 import kotlinx.coroutines.flow.StateFlow
@@ -71,11 +73,11 @@ private fun SearchTextField(
         value = searchQuery,
         onValueChange = { viewModel.updateSearchQuery(it) },
         modifier = Modifier.fillMaxWidth(), // Now this works inside the Box with weight
-        placeholder = { Text("Search incidents...") },
+        placeholder = { Text(stringResource(R.string.search_incidents)) },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Search"
+                contentDescription = stringResource(R.string.search)
             )
         },
         singleLine = true,
@@ -100,7 +102,7 @@ private fun FilterIconButton(
     ) {
         Icon(
             imageVector = Icons.Default.Menu,
-            contentDescription = "Filter",
+            contentDescription = stringResource(R.string.filter),
             tint = if (hasActiveFilters) MaterialTheme.colorScheme.onPrimary
             else MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -114,13 +116,13 @@ fun FilterDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Filter Incidents") },
+        title = { Text(stringResource(R.string.filter_incidents)) },
         text = {
             FilterDialogContent(viewModel = viewModel)
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Apply")
+                Text(stringResource(R.string.apply))
             }
         },
         dismissButton = {
@@ -128,7 +130,7 @@ fun FilterDialog(
                 viewModel.clearAllFilters()
                 onDismiss()
             }) {
-                Text("Clear All")
+                Text(stringResource(R.string.clear_all))
             }
         }
     )
@@ -144,7 +146,7 @@ private fun FilterDialogContent(
     ) {
         // Priority Filter
         FilterSection(
-            title = "Priority",
+            title = stringResource(R.string.priority_lowercase),
             options = listOf("LOW", "NORMAL", "HIGH", "CRITICAL"),
             selectedOptionsFlow = viewModel.selectedPriorityFilter,
             onOptionsSelected = { viewModel.updatePriorityFilter(it.toSet()) }
@@ -153,7 +155,7 @@ private fun FilterDialogContent(
         HorizontalDivider()
 
         FilterSection(
-            title = "Status",
+            title = stringResource(R.string.status_lowercase),
             options = listOf("REPORTED", "ASSIGNED", "RESOLVED"),
             selectedOptionsFlow = viewModel.selectedStatusFilter,
             onOptionsSelected = { viewModel.updateStatusFilter(it.toSet()) }
@@ -162,7 +164,7 @@ private fun FilterDialogContent(
         HorizontalDivider()
 
         FilterSection(
-            title = "Category",
+            title = stringResource(R.string.category_lowercase),
             options = listOf("CRIME", "ENVIRONMENT", "COMMUNAL", "TRAFFIC", "OTHER"),
             selectedOptionsFlow = viewModel.selectedCategoryFilter,
             onOptionsSelected = { viewModel.updateCategoryFilter(it.toSet()) }

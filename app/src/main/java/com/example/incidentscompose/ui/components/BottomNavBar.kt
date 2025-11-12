@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.incidentscompose.R
 import com.example.incidentscompose.navigation.IncidentMapKey
@@ -24,39 +25,38 @@ import androidx.navigation3.runtime.NavKey
 
 sealed class BottomNavItem(
     val key: NavKey,
-    val title: String,
+    val titleResId: Int,
     val icon: Int,
     val requiredRole: Set<String>
 ) {
     data object List : BottomNavItem(
         key = IncidentListKey,
-        title = "List",
+        titleResId = R.string.list,
         icon = R.drawable.list,
         requiredRole = setOf("OFFICIAL", "ADMIN")
     )
 
     data object Map : BottomNavItem(
         key = IncidentMapKey,
-        title = "Map",
+        titleResId = R.string.map,
         icon = R.drawable.map,
         requiredRole = setOf("OFFICIAL", "ADMIN")
     )
 
     data object Users : BottomNavItem(
         key = UserManagementKey,
-        title = "Users",
+        titleResId = R.string.users,
         icon = R.drawable.users,
         requiredRole = setOf("ADMIN")
     )
 
     data object Profile : BottomNavItem(
         key = MyIncidentListKey,
-        title = "Profile",
+        titleResId = R.string.profile,
         icon = R.drawable.profile,
         requiredRole = setOf("OFFICIAL", "ADMIN")
     )
 }
-
 
 @Composable
 fun BottomNavBar(
@@ -90,13 +90,13 @@ fun BottomNavBar(
                 icon = {
                     Icon(
                         painter = painterResource(id = item.icon),
-                        contentDescription = item.title,
+                        contentDescription = stringResource(item.titleResId),
                         modifier = Modifier.size(32.dp)
                     )
                 },
                 label = {
                     Text(
-                        text = item.title,
+                        text = stringResource(item.titleResId),
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1
                     )
@@ -113,4 +113,3 @@ fun BottomNavBar(
         }
     }
 }
-

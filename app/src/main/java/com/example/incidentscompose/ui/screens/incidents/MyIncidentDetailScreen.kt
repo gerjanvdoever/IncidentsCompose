@@ -164,7 +164,7 @@ fun MyIncidentDetailScreen(
                     onClick = { showResolvedDialog = false }
                 ) {
                     Text(
-                        text = "OK",
+                        text = stringResource(R.string.ok),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
                     )
@@ -205,7 +205,7 @@ fun MyIncidentDetailScreen(
                     onClick = { showCannotDeleteDialog = false }
                 ) {
                     Text(
-                        text = "OK",
+                        text = stringResource(R.string.ok),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
                     )
@@ -254,7 +254,7 @@ fun MyIncidentDetailScreen(
                     )
                 ) {
                     Text(
-                        text = "Delete",
+                        text = stringResource(R.string.delete),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
                     )
@@ -265,7 +265,7 @@ fun MyIncidentDetailScreen(
                     onClick = { showDeleteConfirmDialog = false }
                 ) {
                     Text(
-                        text = "Cancel",
+                        text = stringResource(R.string.cancel),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
                     )
@@ -563,7 +563,7 @@ private fun IncidentHeaderCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "CREATED",
+                            text = stringResource(R.string.created),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF6B7280),
@@ -741,7 +741,7 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "No image",
+                                        text = stringResource(R.string.no_image),
                                         color = Color(0xFF9CA3AF)
                                     )
                                 }
