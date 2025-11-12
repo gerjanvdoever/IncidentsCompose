@@ -1,6 +1,7 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.store.TokenPreferences
@@ -66,24 +67,30 @@ class IncidentManagementViewModel(
     fun getAllIncidents() {
         viewModelScope.launch {
             withLoading {
-                val result = incidentRepository.getAllIncidents()
-                result.fold(
-                    onSuccess = { incidents ->
+                when (val result = incidentRepository.getAllIncidents()) {
+                    is ApiResult.Success -> {
+                        val incidents = result.data
                         _allIncidents.value = incidents
-                        // Show first pageSize incidents initially
                         currentDisplayCount = minOf(pageSize, incidents.size)
                         _displayedIncidents.value = incidents.take(currentDisplayCount)
                         _showLoadMore.value = incidents.size > currentDisplayCount
-                        applyFilters() // Apply filters after loading
-                    },
-                    onFailure = { exception ->
-                        if (exception.message?.contains("Unauthorized", true) == true) {
-                            _unauthorizedState.value = true
-                        } else {
-                            _toastMessage.value = exception.message
-                        }
+                        applyFilters()
                     }
-                )
+
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+
+                    is ApiResult.HttpError -> _toastMessage.value =
+                        "Failed to load incidents: ${result.message}"
+
+                    is ApiResult.NetworkError -> _toastMessage.value =
+                        "Network error: ${result.exception.message}"
+
+                    is ApiResult.Timeout -> _toastMessage.value =
+                        "Request timed out while loading incidents."
+
+                    is ApiResult.Unknown -> _toastMessage.value =
+                        "An unexpected error occurred while loading incidents."
+                }
             }
         }
     }
@@ -96,13 +103,12 @@ class IncidentManagementViewModel(
             _displayedIncidents.value = allIncidents.take(newDisplayCount)
             currentDisplayCount = newDisplayCount
             _showLoadMore.value = allIncidents.size > currentDisplayCount
-            applyFilters() // Apply filters after loading more
+            applyFilters()
         } else {
             _showLoadMore.value = false
         }
     }
 
-    // Filter methods
     private fun applyFilters() {
         val filtered = IncidentFilterHelper.instance.filterIncidents(
             incidents = _displayedIncidents.value,

@@ -1,17 +1,12 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.example.incidentscompose.data.model.IncidentCategory
-import com.example.incidentscompose.data.model.IncidentResponse
-import com.example.incidentscompose.data.model.UpdateIncidentRequest
+import com.example.incidentscompose.data.model.*
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.store.IncidentDataStore
 import com.example.incidentscompose.ui.states.BaseViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -23,16 +18,19 @@ class MyIncidentDetailViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _updateResult = MutableStateFlow<Result<IncidentResponse>?>(null)
-    val updateResult: StateFlow<Result<IncidentResponse>?> = _updateResult.asStateFlow()
+    private val _updateResult = MutableStateFlow<ApiResult<IncidentResponse>?>(null)
+    val updateResult: StateFlow<ApiResult<IncidentResponse>?> = _updateResult.asStateFlow()
 
-    private val _deleteResult = MutableStateFlow<Result<Unit>?>(null)
-    val deleteResult: StateFlow<Result<Unit>?> = _deleteResult.asStateFlow()
+    private val _deleteResult = MutableStateFlow<ApiResult<Unit>?>(null)
+    val deleteResult: StateFlow<ApiResult<Unit>?> = _deleteResult.asStateFlow()
+
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
     fun updateIncident(
         incidentId: Long,
-        category: IncidentCategory?,
-        description: String?,
+        category: IncidentCategory? = null,
+        description: String? = null,
         latitude: Double? = null,
         longitude: Double? = null
     ) {
@@ -49,13 +47,31 @@ class MyIncidentDetailViewModel(
                     val result = incidentRepository.updateIncident(incidentId, updateRequest)
                     _updateResult.value = result
 
-                    if (result.isSuccess) {
-                        result.getOrNull()?.let { updatedIncident ->
-                            incidentDataStore.saveSelectedIncident(updatedIncident)
+                    when (result) {
+                        is ApiResult.Success -> {
+                            incidentDataStore.saveSelectedIncident(result.data)
+                        }
+                        is ApiResult.Timeout -> {
+                            _toastMessage.value = "Update request timed out. Please try again."
+                        }
+                        is ApiResult.Unknown -> {
+                            _toastMessage.value = "Unexpected error occurred while updating incident."
+                        }
+                        is ApiResult.HttpError -> {
+                            _toastMessage.value = "Failed to update incident: ${result.message}"
+                        }
+                        is ApiResult.NetworkError -> {
+                            _toastMessage.value =
+                                "Network error: ${result.exception.message ?: "Please try again"}"
+                        }
+                        is ApiResult.Unauthorized -> {
+                            _toastMessage.value = "You are not authorized to update this incident."
                         }
                     }
                 } catch (e: Exception) {
-                    _updateResult.value = Result.failure(e)
+                    // Safety net for unexpected exceptions
+                    _updateResult.value = ApiResult.NetworkError(e)
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
             }
         }
@@ -71,8 +87,19 @@ class MyIncidentDetailViewModel(
                 try {
                     val result = incidentRepository.deleteIncident(incidentId)
                     _deleteResult.value = result
+
+                    when (result) {
+                        is ApiResult.Success -> _toastMessage.value = "Incident deleted successfully."
+                        is ApiResult.Timeout -> _toastMessage.value = "Delete request timed out. Please try again."
+                        is ApiResult.Unknown -> _toastMessage.value = "Unexpected error occurred while deleting incident."
+                        is ApiResult.HttpError -> _toastMessage.value = "Failed to delete incident: ${result.message}"
+                        is ApiResult.NetworkError -> _toastMessage.value =
+                            "Network error: ${result.exception.message ?: "Please try again"}"
+                        is ApiResult.Unauthorized -> _toastMessage.value = "You are not authorized to delete this incident."
+                    }
                 } catch (e: Exception) {
-                    _deleteResult.value = Result.failure(e)
+                    _deleteResult.value = ApiResult.NetworkError(e)
+                    _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 }
             }
         }
@@ -88,5 +115,9 @@ class MyIncidentDetailViewModel(
         viewModelScope.launch {
             incidentDataStore.clearSelectedIncident()
         }
+    }
+
+    fun clearToastMessage() {
+        _toastMessage.value = null
     }
 }

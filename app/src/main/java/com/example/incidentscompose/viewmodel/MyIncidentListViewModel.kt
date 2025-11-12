@@ -3,6 +3,7 @@ package com.example.incidentscompose.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.data.model.UserResponse
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.repository.UserRepository
@@ -37,9 +38,15 @@ class MyIncidentListViewModel(
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole.asStateFlow()
 
+    private val _unauthorizedState = MutableStateFlow(false)
+    val unauthorizedState: StateFlow<Boolean> = _unauthorizedState.asStateFlow()
+
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
+
     init {
-        loadUserData()
         loadUserRole()
+        loadUserData()
     }
 
     private fun loadUserRole() {
@@ -51,21 +58,28 @@ class MyIncidentListViewModel(
     private fun loadUserData() {
         viewModelScope.launch {
             _isLoading.value = true
-
             try {
-                val userResult = userRepository.getCurrentUser()
-
-                if (userResult.isSuccess) {
-                    _user.value = userResult.getOrNull()
-
-                    val incidentsResult = incidentRepository.getMyIncidents()
-                    if (incidentsResult.isSuccess) {
-                        _incidents.value = incidentsResult.getOrNull() ?: emptyList()
+                when (val userResult = userRepository.getCurrentUser()) {
+                    is ApiResult.Success -> {
+                        _user.value = userResult.data
+                        loadUserIncidents()
                     }
-                } else {
-                    logout()
+
+                    is ApiResult.HttpError -> handleUserError(userResult)
+                    is ApiResult.NetworkError -> handleUserError(userResult)
+                    is ApiResult.Timeout -> {
+                        _toastMessage.value = "Fetching user data timed out."
+                        _user.value = null
+                    }
+                    is ApiResult.Unknown -> {
+                        _toastMessage.value = "Unexpected error fetching user data."
+                        _user.value = null
+                    }
+                    is ApiResult.Unauthorized -> logout()
                 }
             } catch (e: Exception) {
+                // Safety net
+                _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
                 logout()
             } finally {
                 _isLoading.value = false
@@ -73,21 +87,52 @@ class MyIncidentListViewModel(
         }
     }
 
+    private fun loadUserIncidents() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                when (val incidentsResult = incidentRepository.getMyIncidents()) {
+                    is ApiResult.Success -> _incidents.value = incidentsResult.data
+
+                    is ApiResult.HttpError -> handleIncidentError(incidentsResult)
+                    is ApiResult.NetworkError -> handleIncidentError(incidentsResult)
+                    is ApiResult.Timeout -> _toastMessage.value = "Fetching incidents timed out."
+                    is ApiResult.Unknown -> _toastMessage.value = "Unexpected error fetching incidents."
+                    is ApiResult.Unauthorized -> logout()
+                }
+            } catch (e: Exception) {
+                _toastMessage.value = "Unexpected error: ${e.message ?: "Please try again"}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private fun handleUserError(result: ApiResult<*>): Boolean {
+        if (result is ApiResult.HttpError && result.code == 401) {
+            _unauthorizedState.value = true
+        }
+        logout()
+        return false
+    }
+
+    private fun handleIncidentError(result: ApiResult<*>): Boolean {
+        if (result is ApiResult.HttpError && result.code == 401) {
+            _unauthorizedState.value = true
+        }
+        // Leave incidents list unchanged
+        return false
+    }
+
     fun logout() {
         viewModelScope.launch {
             _isLoading.value = true
-
             try {
                 authRepository.logout()
-                _user.value = null
-                _incidents.value = emptyList()
-                _logoutEvent.value = true
-            } catch (e: Exception) {
-                // Even if logout fails, clear local state
-                _user.value = null
-                _incidents.value = emptyList()
-                _logoutEvent.value = true
             } finally {
+                _user.value = null
+                _incidents.value = emptyList()
+                _logoutEvent.value = true
                 _isLoading.value = false
             }
         }
@@ -104,19 +149,10 @@ class MyIncidentListViewModel(
     }
 
     fun refreshIncidents() {
-        viewModelScope.launch {
-            _isLoading.value = true
+        loadUserIncidents()
+    }
 
-            try {
-                val incidentsResult = incidentRepository.getMyIncidents()
-                if (incidentsResult.isSuccess) {
-                    _incidents.value = incidentsResult.getOrNull() ?: emptyList()
-                }
-            } catch (e: Exception) {
-                // Handle error - incidents remain unchanged
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    fun clearToastMessage() {
+        _toastMessage.value = null
     }
 }

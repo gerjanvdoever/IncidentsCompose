@@ -1,15 +1,13 @@
 package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.ui.states.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.net.ConnectException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 
 class LoginViewModel(
     private val repository: AuthRepository
@@ -31,27 +29,38 @@ class LoginViewModel(
 
         viewModelScope.launch {
             try {
-                val success = withLoading {
+                val result = withLoading {
                     repository.login(username, password)
                 }
-                _loginState.value = if (success) {
-                    LoginState.Success
-                } else {
-                    LoginState.Error("Invalid username or password")
+
+                when (result) {
+                    is ApiResult.Success -> _loginState.value = LoginState.Success
+
+                    is ApiResult.HttpError -> _loginState.value =
+                        LoginState.Error("Login failed: ${result.message}")
+
+                    is ApiResult.NetworkError -> _loginState.value =
+                        LoginState.Error("Network error: ${result.exception.message ?: "Please try again"}")
+
+                    is ApiResult.Timeout -> _loginState.value =
+                        LoginState.Error("Request timed out. Please try again.")
+
+                    is ApiResult.Unknown -> _loginState.value =
+                        LoginState.Error("Unexpected error occurred. Please try again later.")
+
+                    is ApiResult.Unauthorized -> _loginState.value =
+                        LoginState.Error("Invalid username or password.")
                 }
             } catch (e: Exception) {
-                val errorMessage = when (e) {
-                    is ConnectException, is SocketTimeoutException, is UnknownHostException -> {
-                        "Network error: Unable to connect to server."
-                    }
-                    else -> {
-                        "Network error: ${e.message ?: "Please try again later"}"
-                    }
-                }
-                _loginState.value = LoginState.Error(errorMessage)
+                // purely a safety net for unexpected cases
+                _loginState.value = LoginState.Error(
+                    "Unexpected error: ${e.message ?: "Something went wrong"}"
+                )
             }
         }
     }
+
+
 
     fun checkAutoLogin() {
         viewModelScope.launch {
