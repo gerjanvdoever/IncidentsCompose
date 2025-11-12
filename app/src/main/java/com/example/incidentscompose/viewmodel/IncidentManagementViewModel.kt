@@ -160,8 +160,4 @@ class IncidentManagementViewModel(
         currentDisplayCount = 0
         getAllIncidents()
     }
-
-    fun clearToastMessage() {
-        _toastMessage.value = null
-    }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,34 +85,41 @@ fun IncidentListScreen(
                     onFilterClick = { showFilterMenu = true }
                 )
 
-                if (filteredIncidents.isEmpty() && !isLoading) {
-                    EmptyState()
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(filteredIncidents, key = { it.id }) { incident ->
-                            IncidentCard(
-                                incident = incident,
-                                onClick = {
-                                    onNavigateToDetail(incident.id)
-                                }
-                            )
-                        }
-                        if (showLoadMore) {
-                            item {
-                                Button(
-                                    onClick = { viewModel.loadMoreIncidents() },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Text("Load More")
+                PullToRefreshBox(
+                    isRefreshing = isLoading,
+                    onRefresh = { viewModel.refreshIncidents() },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    if (filteredIncidents.isEmpty() && !isLoading) {
+                        EmptyState()
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(filteredIncidents, key = { it.id }) { incident ->
+                                IncidentCard(
+                                    incident = incident,
+                                    onClick = {
+                                        onNavigateToDetail(incident.id)
+                                    }
+                                )
+                            }
+
+                            if (showLoadMore) {
+                                item {
+                                    Button(
+                                        onClick = { viewModel.loadMoreIncidents() },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    ) {
+                                        Text("Load More")
+                                    }
                                 }
                             }
                         }

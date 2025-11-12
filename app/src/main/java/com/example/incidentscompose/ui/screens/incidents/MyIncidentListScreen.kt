@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import android.provider.Settings
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -222,36 +223,41 @@ fun MyIncidentListScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 0.dp)
                 )
 
-                if (incidents.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.no_incidents_found),
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .padding(horizontal = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(15.dp),
-                        contentPadding = PaddingValues(vertical = 15.dp)
-                    ) {
-                        items(incidents) { incident ->
-                            IncidentCard(
-                                incident = incident,
-                                onClick = {
-                                    viewModel.saveSelectedIncident(incident)
-                                    onNavigateToDetail()
-                                }
+                PullToRefreshBox(
+                    isRefreshing = isBusy,
+                    onRefresh = { viewModel.refreshIncidents() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    if (incidents.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.no_incidents_found),
+                                color = Color.Gray,
+                                fontSize = 16.sp
                             )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(15.dp),
+                            contentPadding = PaddingValues(vertical = 15.dp)
+                        ) {
+                            items(incidents) { incident ->
+                                IncidentCard(
+                                    incident = incident,
+                                    onClick = {
+                                        viewModel.saveSelectedIncident(incident)
+                                        onNavigateToDetail()
+                                    }
+                                )
+                            }
                         }
                     }
                 }
