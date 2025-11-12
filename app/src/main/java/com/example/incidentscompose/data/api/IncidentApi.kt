@@ -49,9 +49,10 @@ class IncidentApi(
 
     // Public endpoint: create without authorization
     suspend fun createIncident(request: CreateIncidentRequest): ApiResult<IncidentResponse> =
-        performRequest(tokenPreferences, requiresAuth = false) { _ ->
+        performRequest(tokenPreferences, requiresAuth = false, optionalAuth = true) { token ->
             client.post("$baseUrl/incidents") {
                 contentType(ContentType.Application.Json)
+                token?.let { bearerAuth(it) }
                 setBody(request)
             }
         }
@@ -100,15 +101,17 @@ class IncidentApi(
         }
 
     // Public: Upload image without authorization
+// Public: Upload image without authorization
     suspend fun uploadImageToIncident(
         incidentId: Long,
         imageFile: File,
         description: String = ""
     ): ApiResult<ImageUploadResponse> =
-        performRequest(tokenPreferences, requiresAuth = false) { _ ->
+        performRequest(tokenPreferences, requiresAuth = false, optionalAuth = true) { token ->
             require(imageFile.exists()) { "Image file does not exist" }
 
             client.post("$baseUrl/incidents/$incidentId/images") {
+                token?.let { bearerAuth(it) }
                 setBody(
                     MultiPartFormDataContent(
                         formData {
@@ -135,7 +138,7 @@ class IncidentApi(
         imageFiles: List<File>,
         description: String = ""
     ): ApiResult<List<ImageUploadResponse>> =
-        performRequest(tokenPreferences) { token ->
+        performRequest(tokenPreferences, requiresAuth = false, optionalAuth = true) { token ->
             val validFiles = imageFiles.filter { it.exists() }
             require(validFiles.isNotEmpty()) { "No valid image files provided" }
 
