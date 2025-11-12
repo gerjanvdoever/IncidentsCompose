@@ -72,7 +72,7 @@ private fun SearchTextField(
     OutlinedTextField(
         value = searchQuery,
         onValueChange = { viewModel.updateSearchQuery(it) },
-        modifier = Modifier.fillMaxWidth(), // Now this works inside the Box with weight
+        modifier = Modifier.fillMaxWidth(),
         placeholder = { Text(stringResource(R.string.search_incidents)) },
         leadingIcon = {
             Icon(

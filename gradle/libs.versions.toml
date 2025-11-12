@@ -14,6 +14,7 @@ ktor = "3.3.2"
 datastore = "1.1.7"
 serialization = "1.9.0"
 coil = "2.7.0"
+mapLibre = "0.12.1"
 
 nav3Core = "1.0.0-rc01"
 lifecycleViewmodelNav3 = "2.10.0-rc01"
@@ -54,7 +55,7 @@ coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 androidx-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
-
+maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref ="mapLibre" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
