@@ -49,6 +49,12 @@ class ReportIncidentViewModel(
         _uiState.update { it.copy(latitude = 51.9851, longitude = 5.5338) }
     }
 
+    fun updateLocation(latitude: Double, longitude: Double) =
+        _uiState.update { it.copy(latitude = latitude, longitude = longitude) }
+
+    fun clearLocation() =
+        _uiState.update { it.copy(latitude = null, longitude = null) }
+
     fun updatePermissions(granted: Boolean) {
         _uiState.update { it.copy(hasPermissions = granted) }
         if (!granted) showPermissionDeniedWarning()

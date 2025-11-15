@@ -79,34 +79,6 @@ fun IncidentMap(
         firstPosition = calculateInitialCamera(incidents, userLocation)
     )
 
-    val incidentsSource = rememberGeoJsonSource(
-        GeoJsonData.Features(createIncidentsGeoJson(incidents))
-    )
-
-    val selectedLocationSource = selectedLocation?.let { location ->
-        val feature = Feature(
-            geometry = Point(Position(location.second, location.first)),
-            properties = null
-        )
-        val featureCollection = FeatureCollection<Point, JsonObject?>(
-            features = listOf(feature)
-        )
-
-        rememberGeoJsonSource(GeoJsonData.Features(featureCollection))
-    }
-
-    val userLocationSource = if (isLocationSelectionEnabled && userLocation != null) {
-        val feature = Feature(
-            geometry = Point(Position(userLocation.second, userLocation.first)),
-            properties = emptyMap<String, Any?>()
-        )
-        val featureCollection = FeatureCollection(
-            features = listOf(feature)
-        )
-
-        rememberGeoJsonSource(GeoJsonData.Features(featureCollection))
-    } else null
-
     Box(modifier = modifier) {
         if (!hasLocationPermission && userLocation != null) {
             Column(
@@ -138,7 +110,7 @@ fun IncidentMap(
                         isTiltEnabled = true,
                         isZoomEnabled = true,
                         isRotateEnabled = true,
-                        isScrollEnabled = true,
+                        isScrollEnabled = true
                     )
                 ),
                 onMapClick = { position, _ ->
@@ -153,14 +125,51 @@ fun IncidentMap(
                     }
                 }
             ) {
-                getBaseSource(id = "openmaptiles")?.let { _ ->
-                    CircleLayer(
-                        id = "incidents-outer",
-                        source = incidentsSource,
-                        radius = const(10.dp),
-                        color = const(Color.Red),
-                        onClick = { features ->
-                            val id = features.firstOrNull()?.getStringProperty("id")?.toLongOrNull()
+                // --- INCIDENTS SOURCE ---
+                val incidentsSource = rememberGeoJsonSource(
+                    GeoJsonData.Features(
+                        createIncidentsGeoJson(incidents).takeIf { it.features.isNotEmpty() }
+                            ?: FeatureCollection(features = listOf(
+                                Feature(
+                                    geometry = Point(Position(0.0, 0.0)),
+                                    properties = buildJsonObject { }
+                                )
+                            ))
+                    )
+                )
+
+                // --- SELECTED LOCATION SOURCE ---
+                val selectedLocationSource = selectedLocation?.let { location ->
+                    val feature = Feature(
+                        geometry = Point(Position(location.second, location.first)),
+                        properties = buildJsonObject {} // empty JSON instead of null
+                    )
+                    val featureCollection = FeatureCollection(features = listOf(feature))
+                    rememberGeoJsonSource(GeoJsonData.Features(featureCollection))
+                }
+
+                // --- USER LOCATION SOURCE ---
+                val userLocationSource = userLocation?.let { location ->
+                    val feature = Feature(
+                        geometry = Point(Position(location.second, location.first)),
+                        properties = buildJsonObject { put("type", "user-location") }
+                    )
+                    val featureCollection = FeatureCollection(features = listOf(feature))
+                    rememberGeoJsonSource(GeoJsonData.Features(featureCollection))
+                }
+
+                // --- INCIDENTS LAYERS ---
+                CircleLayer(
+                    id = "incidents-outer",
+                    source = incidentsSource,
+                    radius = const(10.dp),
+                    color = const(Color.Red),
+                    onClick = { features ->
+                        val feature = features.firstOrNull()
+                        val idString = feature?.getStringProperty("id")
+                        val id = idString?.toLongOrNull()
+
+                        if (id != null) {
                             incidents.find { it.id == id }?.let { incident ->
                                 if (clickedIncident?.id == incident.id && allowDetailNavigation) {
                                     onIncidentClick(incident)
@@ -171,54 +180,53 @@ fun IncidentMap(
                                     clickedIncident = incident
                                 }
                             }
+                        }
+                        ClickResult.Consume
+                    }
+                )
+
+                CircleLayer(
+                    id = "incidents-inner",
+                    source = incidentsSource,
+                    radius = const(4.dp),
+                    color = const(Color.White)
+                )
+
+                // --- SELECTED LOCATION LAYERS ---
+                selectedLocationSource?.let { source ->
+                    CircleLayer(
+                        id = "selected-location-outer",
+                        source = source,
+                        radius = const(12.dp),
+                        color = const(Color(0xFF2196F3))
+                    )
+                    CircleLayer(
+                        id = "selected-location-inner",
+                        source = source,
+                        radius = const(6.dp),
+                        color = const(Color.White)
+                    )
+                }
+
+                // --- USER LOCATION LAYERS ---
+                userLocationSource?.let { source ->
+                    CircleLayer(
+                        id = "user-location-outer",
+                        source = source,
+                        radius = const(10.dp),
+                        color = const(Color(0xFF4CAF50)),
+                        onClick = {
+                            selectedLocation = userLocation
+                            onLocationSelected(userLocation.first, userLocation.second)
                             ClickResult.Consume
                         }
                     )
-
                     CircleLayer(
-                        id = "incidents-inner",
-                        source = incidentsSource,
+                        id = "user-location-inner",
+                        source = source,
                         radius = const(4.dp),
                         color = const(Color.White)
                     )
-
-                    selectedLocationSource?.let { source ->
-                        CircleLayer(
-                            id = "selected-location-outer",
-                            source = source,
-                            radius = const(12.dp),
-                            color = const(Color(0xFF2196F3))
-                        )
-                        CircleLayer(
-                            id = "selected-location-inner",
-                            source = source,
-                            radius = const(6.dp),
-                            color = const(Color.White)
-                        )
-                    }
-
-                    // User location marker (in selection mode only)
-                    userLocationSource?.let { source ->
-                        CircleLayer(
-                            id = "user-location-outer",
-                            source = source,
-                            radius = const(10.dp),
-                            color = const(Color(0xFF4CAF50)),
-                            onClick = {
-                                if (userLocation != null) {
-                                    selectedLocation = userLocation
-                                    onLocationSelected(userLocation.first, userLocation.second)
-                                }
-                                ClickResult.Consume
-                            }
-                        )
-                        CircleLayer(
-                            id = "user-location-inner",
-                            source = source,
-                            radius = const(4.dp),
-                            color = const(Color.White)
-                        )
-                    }
                 }
             }
         }
@@ -250,7 +258,7 @@ fun IncidentInfoCard(
     ) {
         Card(
             modifier = Modifier
-                .align(Alignment.BottomCenter) // Now this works inside Box
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(12.dp),
@@ -303,6 +311,7 @@ fun IncidentInfoCard(
         }
     }
 }
+
 @Composable
 fun StatusChip(status: String) {
     val (backgroundColor, textColor) = when (status.uppercase()) {
@@ -346,19 +355,23 @@ private fun PriorityChip(priority: String) {
 
 // ---------------------- UTILITY FUNCTIONS ----------------------
 
-private fun createIncidentsGeoJson(incidents: List<IncidentResponse>): FeatureCollection<Point, JsonObject> {
-    val features = incidents.map { incident ->
-        Feature(
-            geometry = Point(Position(incident.longitude, incident.latitude)),
-            properties = buildJsonObject {
-                put("id", incident.id.toString())
-                put("category", incident.category)
-                put("priority", incident.priority)
-                put("status", incident.status)
-                put("dueAt", incident.dueAt)
-            },
-            id = JsonPrimitive(incident.id.toString())
-        )
+private fun createIncidentsGeoJson(incidents: List<IncidentResponse>): FeatureCollection<Point, JsonObject?> {
+    val features = incidents.mapNotNull { incident ->
+        try {
+            Feature(
+                geometry = Point(Position(incident.longitude, incident.latitude)),
+                properties = buildJsonObject {
+                    put("id", incident.id.toString())
+                    put("category", incident.category ?: "")
+                    put("priority", incident.priority ?: "")
+                    put("status", incident.status ?: "")
+                    put("dueAt", incident.dueAt ?: "")
+                },
+                id = JsonPrimitive(incident.id.toString())
+            )
+        } catch (e: Exception) {
+            null // Skip any features that cause errors
+        }
     }
     return FeatureCollection(features = features)
 }

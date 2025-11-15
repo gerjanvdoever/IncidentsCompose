@@ -44,6 +44,8 @@ import com.example.incidentscompose.util.PhotoUtils
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
 import org.koin.androidx.compose.koinViewModel
 import androidx.core.net.toUri
+import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.ui.components.IncidentMap
 
 @Composable
 fun ReportIncidentScreen(
@@ -200,10 +202,14 @@ fun ReportIncidentScreen(
                     onRemovePhoto = { viewModel.removePhoto(it.toString()) }
                 )
 
+                // Updated MapLocationCard with location selection
                 MapLocationCard(
                     latitude = uiState.latitude,
                     longitude = uiState.longitude,
-                    onUseCurrentLocation = { viewModel.useCurrentLocation() }
+                    onUseCurrentLocation = { viewModel.useCurrentLocation() },
+                    onLocationSelected = { lat, lon ->
+                        viewModel.updateLocation(lat, lon)
+                    }
                 )
 
                 if (!uiState.errorMessage.isNullOrBlank()) {
@@ -396,7 +402,8 @@ fun PermissionDeniedDialog(
 fun MapLocationCard(
     latitude: Double?,
     longitude: Double?,
-    onUseCurrentLocation: () -> Unit
+    onUseCurrentLocation: () -> Unit,
+    onLocationSelected: (Double, Double) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -455,22 +462,38 @@ fun MapLocationCard(
                                 color = Color(0xFF0C4A6E)
                             )
                         }
+                        IconButton(
+                            onClick = { /* Clear location if needed */ }
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear location")
+                        }
                     }
                 }
             }
 
+            // Replace the placeholder Box with the actual IncidentMap
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp)
                     .border(1.dp, Color(0xFFD0D7DE), RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF6F8FA), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
+                    .clip(RoundedCornerShape(12.dp))
             ) {
-                Text(
-                    text = stringResource(R.string.map_goes_here),
-                    fontSize = 16.sp,
-                    color = Color(0xFF656D76)
+                IncidentMap(
+                    modifier = Modifier.fillMaxSize(),
+                    incidents = emptyList(),
+                    isLocationSelectionEnabled = true,
+                    allowDetailNavigation = false,
+                    onIncidentClick = { /* Not used in report mode */ },
+                    onLocationSelected = { lat, lon ->
+                        onLocationSelected(lat, lon)
+                    },
+                    userLocation = if (latitude != null && longitude != null) {
+                        latitude to longitude
+                    } else {
+                        // Default location (Netherlands center) or null
+                        52.1326 to 5.2913
+                    }
                 )
             }
 
