@@ -19,32 +19,13 @@ import com.example.incidentscompose.ui.theme.IncidentsComposeTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-enum class Priority(val label: String, val deadlineDays: Long) {
-    LOW("Low", 7),
-    MEDIUM("Medium", 3),
-    HIGH("High", 1)
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             IncidentsComposeTheme {
-                var note by remember { mutableStateOf("") }
-                var priority by remember { mutableStateOf(Priority.MEDIUM) }
-
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    IncidentScreen(
-                        category = "Vandalisme",
-                        description = "Zijruit van bushalte ingegooid",
-                        status = "Reported",
-                        priority = priority,
-                        onPriorityChange = { priority = it },
-                        note = note,
-                        onNoteChange = { note = it },
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                IncidentsListScreen()
             }
         }
     }
