@@ -34,6 +34,7 @@ import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.ui.components.IncidentMap
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
 import com.example.incidentscompose.util.ImageUrlHelper
@@ -351,10 +352,12 @@ private fun IncidentDetailContent(
     onSave: () -> Unit,
     onDelete: () -> Unit
 ) {
+    var parentScrollEnabled by remember { mutableStateOf(true) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(rememberScrollState(), enabled = parentScrollEnabled)
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -368,7 +371,9 @@ private fun IncidentDetailContent(
             onDescriptionChange = onDescriptionChange
         )
         IncidentImagesCard(incident)
-        IncidentLocationCard(incident)
+        IncidentLocationCard(incident,
+            parentScrollEnabled = parentScrollEnabled,
+            onParentScrollEnabledChange = { parentScrollEnabled = it })
 
         ActionButtons(
             onSave = onSave,
@@ -773,7 +778,11 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
 }
 
 @Composable
-private fun IncidentLocationCard(incident: IncidentResponse) {
+private fun IncidentLocationCard(
+    incident: IncidentResponse,
+    parentScrollEnabled: Boolean,
+    onParentScrollEnabledChange: (Boolean) -> Unit) {
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -811,50 +820,18 @@ private fun IncidentLocationCard(incident: IncidentResponse) {
 
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = Color(0xFFF9FAFB)
+                color = Color(0xFFF9FAFB),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Latitude",
-                            fontSize = 13.sp,
-                            color = Color(0xFF6B7280),
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = incident.latitude.toString(),
-                            fontSize = 14.sp,
-                            color = Color(0xFF111827),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFE5E7EB))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Longitude",
-                            fontSize = 13.sp,
-                            color = Color(0xFF6B7280),
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = incident.longitude.toString(),
-                            fontSize = 14.sp,
-                            color = Color(0xFF111827),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
+                IncidentMap(
+                    modifier = Modifier.fillMaxSize(),
+                    incidents = listOf(incident),
+                    isLocationSelectionEnabled = false,
+                    allowDetailNavigation = false,
+                    onMapTouch = { isTouchingMap -> onParentScrollEnabledChange(!isTouchingMap) }
+                )
             }
         }
     }

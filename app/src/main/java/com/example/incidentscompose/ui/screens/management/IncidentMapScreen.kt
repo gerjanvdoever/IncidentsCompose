@@ -1,22 +1,15 @@
 package com.example.incidentscompose.ui.screens.management
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.example.incidentscompose.navigation.IncidentListKey
 import com.example.incidentscompose.navigation.IncidentMapKey
 import com.example.incidentscompose.navigation.MyIncidentListKey
 import com.example.incidentscompose.navigation.UserManagementKey
-import com.example.incidentscompose.ui.components.BottomNavBar
-import com.example.incidentscompose.ui.components.LoadingOverlay
+import com.example.incidentscompose.ui.components.*
 import com.example.incidentscompose.viewmodel.IncidentManagementViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -27,10 +20,13 @@ fun IncidentMapScreen(
     onNavigateToIncidentList: () -> Unit,
     onNavigateToUserManagement: () -> Unit,
     viewModel: IncidentManagementViewModel = koinViewModel()
-){
+) {
     val unauthorizedState by viewModel.unauthorizedState.collectAsState()
     val userRole by viewModel.userRole.collectAsState()
     val isLoading by viewModel.isBusy.collectAsState()
+    val filteredIncidents by viewModel.filteredIncidents.collectAsState()
+
+    var showFilterDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(unauthorizedState) {
         if (unauthorizedState) {
@@ -56,15 +52,42 @@ fun IncidentMapScreen(
             )
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            Text(
-                text = "Here goes map"
+            SearchAndFilterBar(
+                viewModel = viewModel,
+                onFilterClick = { showFilterDialog = true }
             )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                IncidentMap(
+                    modifier = Modifier.fillMaxSize(),
+                    incidents = filteredIncidents,
+                    isLocationSelectionEnabled = false,
+                    allowDetailNavigation = true,
+                    onIncidentClick = { incident ->
+                        onNavigateToDetail(incident.id)
+                    },
+                    onLocationSelected = { _, _ -> },
+                    onMapTouch = {  }
+                )
+            }
+
             LoadingOverlay(isLoading = isLoading)
+        }
+
+        if (showFilterDialog) {
+            FilterDialog(
+                viewModel = viewModel,
+                onDismiss = { showFilterDialog = false }
+            )
         }
     }
 }

@@ -1,22 +1,26 @@
 package com.example.incidentscompose.ui.components
 
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.unit.sp
+import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.util.LocationManager
+import com.example.incidentscompose.util.rememberPermissionLauncher
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.maplibre.compose.camera.CameraPosition
@@ -33,16 +37,15 @@ import org.maplibre.compose.util.ClickResult
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.max
-import kotlin.math.min
 import org.maplibre.spatialk.geojson.Feature
 import org.maplibre.spatialk.geojson.FeatureCollection
 import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
-import kotlin.collections.listOf
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import org.maplibre.compose.sources.getBaseSource
 import org.maplibre.spatialk.geojson.Feature.Companion.getStringProperty
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 
 @Composable
 fun IncidentMap(
@@ -52,57 +55,111 @@ fun IncidentMap(
     allowDetailNavigation: Boolean = false,
     onIncidentClick: (IncidentResponse) -> Unit = {},
     onLocationSelected: (Double, Double) -> Unit = { _, _ -> },
-    userLocation: Pair<Double, Double>? = null
+    onMapTouch: (Boolean) -> Unit = {},
+    shouldRequestLocationPermission: Boolean = false,
+    shouldUseCurrentLocation: Boolean = false,
+    onLocationPermissionHandled: () -> Unit = {},
+    onCurrentLocationUsed: () -> Unit = {},
+    onLocationError: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
 
-    var hasLocationPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        )
+    var hasLocationPermission by remember { mutableStateOf(false) }
+    var userLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    var selectedLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) } // Keep this here
+
+    val permissionLauncher = rememberPermissionLauncher { isGranted ->
+        hasLocationPermission = isGranted
+        onLocationPermissionHandled()
+
+        if (!isGranted) {
+            onLocationError("Location permission denied. Please enable location services.")
+        }
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasLocationPermission = isGranted
+    // Initialize permission state
+    LaunchedEffect(Unit) {
+        hasLocationPermission = LocationManager.hasLocationPermission(context)
+    }
+
+    // Handle location permission request trigger
+    LaunchedEffect(shouldRequestLocationPermission) {
+        if (shouldRequestLocationPermission) {
+            if (!hasLocationPermission) {
+                permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        }
+    }
+
+    // Fetch location periodically when permission is granted
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) {
+            while (true) {
+                try {
+                    val (lat, lon) = LocationManager.getCurrentLocation(context).getOrThrow()
+                    userLocation = lat to lon
+                } catch (e: Exception) {
+                    // Silently fail for periodic updates
+                }
+                delay(1000)
+            }
+        }
+    }
+
+    // Handle "use current location" trigger - FIXED THIS PART
+    LaunchedEffect(shouldUseCurrentLocation, userLocation) {
+        if (shouldUseCurrentLocation && userLocation != null) {
+            // Update the selected location to show the pin
+            selectedLocation = userLocation
+            onLocationSelected(userLocation!!.first, userLocation!!.second)
+            onCurrentLocationUsed()
+        }
     }
 
     var selectedIncident by remember { mutableStateOf<IncidentResponse?>(null) }
-    var clickedIncident by remember { mutableStateOf<IncidentResponse?>(null) }
-    var selectedLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
 
     val camera = rememberCameraState(
         firstPosition = calculateInitialCamera(incidents, userLocation)
     )
 
+    // Update camera when user location changes or when using current location
+    LaunchedEffect(userLocation, incidents) {
+        val newCamera = calculateInitialCamera(incidents, userLocation)
+        camera.animateTo(
+            finalPosition = newCamera,
+            duration = 0.5.seconds
+        )
+    }
+
+    // Animate to user location when "use current location" is triggered
+    LaunchedEffect(shouldUseCurrentLocation) {
+        if (shouldUseCurrentLocation && userLocation != null) {
+            camera.animateTo(
+                finalPosition = CameraPosition(
+                    target = Position(latitude = userLocation!!.first, longitude = userLocation!!.second),
+                    zoom = 15.0
+                ),
+                duration = 0.8.seconds
+            )
+        }
+    }
+
     Box(modifier = modifier) {
-        if (!hasLocationPermission && userLocation != null) {
-            Column(
+        if (hasLocationPermission) {
+            MaplibreMap(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Location permission is needed to show your current location",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                Button(onClick = {
-                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                }) {
-                    Text("Grant Permission")
-                }
-            }
-        } else {
-            MaplibreMap(
-                modifier = Modifier.fillMaxSize(),
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                when {
+                                    event.changes.any { it.pressed } -> onMapTouch(true)
+                                    event.changes.all { !it.pressed } -> onMapTouch(false)
+                                }
+                            }
+                        }
+                    },
                 baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/liberty"),
                 cameraState = camera,
                 options = MapOptions(
@@ -120,12 +177,11 @@ fun IncidentMap(
                         ClickResult.Consume
                     } else {
                         selectedIncident = null
-                        clickedIncident = null
                         ClickResult.Pass
                     }
                 }
             ) {
-                // --- INCIDENTS SOURCE ---
+                // Incidents source
                 val incidentsSource = rememberGeoJsonSource(
                     GeoJsonData.Features(
                         createIncidentsGeoJson(incidents).takeIf { it.features.isNotEmpty() }
@@ -138,17 +194,17 @@ fun IncidentMap(
                     )
                 )
 
-                // --- SELECTED LOCATION SOURCE ---
+                // Selected location source
                 val selectedLocationSource = selectedLocation?.let { location ->
                     val feature = Feature(
                         geometry = Point(Position(location.second, location.first)),
-                        properties = buildJsonObject {} // empty JSON instead of null
+                        properties = buildJsonObject {}
                     )
                     val featureCollection = FeatureCollection(features = listOf(feature))
                     rememberGeoJsonSource(GeoJsonData.Features(featureCollection))
                 }
 
-                // --- USER LOCATION SOURCE ---
+                // User location source
                 val userLocationSource = userLocation?.let { location ->
                     val feature = Feature(
                         geometry = Point(Position(location.second, location.first)),
@@ -158,7 +214,7 @@ fun IncidentMap(
                     rememberGeoJsonSource(GeoJsonData.Features(featureCollection))
                 }
 
-                // --- INCIDENTS LAYERS ---
+                // Incidents layers
                 CircleLayer(
                     id = "incidents-outer",
                     source = incidentsSource,
@@ -171,14 +227,7 @@ fun IncidentMap(
 
                         if (id != null) {
                             incidents.find { it.id == id }?.let { incident ->
-                                if (clickedIncident?.id == incident.id && allowDetailNavigation) {
-                                    onIncidentClick(incident)
-                                    clickedIncident = null
-                                    selectedIncident = null
-                                } else {
-                                    selectedIncident = incident
-                                    clickedIncident = incident
-                                }
+                                selectedIncident = incident
                             }
                         }
                         ClickResult.Consume
@@ -192,7 +241,7 @@ fun IncidentMap(
                     color = const(Color.White)
                 )
 
-                // --- SELECTED LOCATION LAYERS ---
+                // Selected location layers
                 selectedLocationSource?.let { source ->
                     CircleLayer(
                         id = "selected-location-outer",
@@ -208,7 +257,7 @@ fun IncidentMap(
                     )
                 }
 
-                // --- USER LOCATION LAYERS ---
+                // User location layers
                 userLocationSource?.let { source ->
                     CircleLayer(
                         id = "user-location-outer",
@@ -216,8 +265,12 @@ fun IncidentMap(
                         radius = const(10.dp),
                         color = const(Color(0xFF4CAF50)),
                         onClick = {
-                            selectedLocation = userLocation
-                            onLocationSelected(userLocation.first, userLocation.second)
+                            userLocation?.let { location ->
+                                if (isLocationSelectionEnabled) {
+                                    selectedLocation = location
+                                    onLocationSelected(location.first, location.second)
+                                }
+                            }
                             ClickResult.Consume
                         }
                     )
@@ -229,16 +282,54 @@ fun IncidentMap(
                     )
                 }
             }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.location_permission_is_required_to_show_the_map),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                Button(
+                    onClick = {
+                        permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                    },
+                    modifier = Modifier.height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0D47A1)
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 0.dp,
+                        pressedElevation = 0.dp
+                    )
+                ) {
+                    Text(
+                        text = stringResource(R.string.grant_permission),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
+            }
         }
 
-        // INCIDENT INFO CARD
         selectedIncident?.let { incident ->
             IncidentInfoCard(
                 incident = incident,
                 allowDetailNavigation = allowDetailNavigation,
                 onClose = {
                     selectedIncident = null
-                    clickedIncident = null
+                },
+                onNavigateToDetails = {
+                    onIncidentClick(incident)
+                    selectedIncident = null
                 }
             )
         }
@@ -251,60 +342,102 @@ fun IncidentMap(
 fun IncidentInfoCard(
     incident: IncidentResponse,
     allowDetailNavigation: Boolean,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onNavigateToDetails: () -> Unit = {}
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Card(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            )
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = formatCategory(incident.category),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            StatusChip(status = incident.status)
+                            PriorityChip(priority = incident.priority)
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                incident.description.takeIf { it.isNotBlank() }?.let { description ->
+                    Text(
+                        text = description.take(120) + if (description.length > 120) "..." else "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 3,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = formatCategory(incident.category),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    IconButton(onClick = onClose) {
-                        Text("✕", style = MaterialTheme.typography.titleLarge)
+                    Column {
+                        Text(
+                            text = "Due date",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = formatDate(incident.dueAt),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    StatusChip(status = incident.status)
-                    PriorityChip(priority = incident.priority)
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Due: ${formatDate(incident.dueAt)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-
                 if (allowDetailNavigation) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
-                        text = "Tap again to view details",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = stringResource(R.string.go_to_details),
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .clickable { onNavigateToDetails() }
                     )
                 }
             }
@@ -362,15 +495,15 @@ private fun createIncidentsGeoJson(incidents: List<IncidentResponse>): FeatureCo
                 geometry = Point(Position(incident.longitude, incident.latitude)),
                 properties = buildJsonObject {
                     put("id", incident.id.toString())
-                    put("category", incident.category ?: "")
-                    put("priority", incident.priority ?: "")
-                    put("status", incident.status ?: "")
-                    put("dueAt", incident.dueAt ?: "")
+                    put("category", incident.category)
+                    put("priority", incident.priority)
+                    put("status", incident.status)
+                    put("dueAt", incident.dueAt)
                 },
                 id = JsonPrimitive(incident.id.toString())
             )
-        } catch (e: Exception) {
-            null // Skip any features that cause errors
+        } catch (_: Exception) {
+            null
         }
     }
     return FeatureCollection(features = features)
@@ -395,56 +528,68 @@ private fun calculateInitialCamera(
     incidents: List<IncidentResponse>,
     userLocation: Pair<Double, Double>?
 ): CameraPosition {
-    return when {
-        incidents.isEmpty() && userLocation != null -> {
+    if (incidents.isEmpty()) {
+        return if (userLocation != null) {
             CameraPosition(
-                target = Position(
-                    latitude = userLocation.first,
-                    longitude = userLocation.second
-                ),
+                target = Position(latitude = userLocation.first, longitude = userLocation.second),
                 zoom = 15.0
             )
-        }
-        incidents.isEmpty() -> {
+        } else {
             CameraPosition(
                 target = Position(latitude = 52.0, longitude = 5.0),
                 zoom = 7.0
             )
         }
-        else -> {
-            val latitudes = incidents.map { it.latitude }
-            val longitudes = incidents.map { it.longitude }
+    }
 
-            val minLat = latitudes.minOrNull() ?: 52.0
-            val maxLat = latitudes.maxOrNull() ?: 52.0
-            val minLon = longitudes.minOrNull() ?: 5.0
-            val maxLon = longitudes.maxOrNull() ?: 5.0
+    val latitudes = incidents.map { it.latitude }
+    val longitudes = incidents.map { it.longitude }
 
-            val finalMinLat = userLocation?.let { min(minLat, it.first) } ?: minLat
-            val finalMaxLat = userLocation?.let { max(maxLat, it.first) } ?: maxLat
-            val finalMinLon = userLocation?.let { min(minLon, it.second) } ?: minLon
-            val finalMaxLon = userLocation?.let { max(maxLon, it.second) } ?: maxLon
+    var minLat = latitudes.minOrNull() ?: 52.0
+    var maxLat = latitudes.maxOrNull() ?: 52.0
+    var minLon = longitudes.minOrNull() ?: 5.0
+    var maxLon = longitudes.maxOrNull() ?: 5.0
 
-            val centerLat = (finalMinLat + finalMaxLat) / 2
-            val centerLon = (finalMinLon + finalMaxLon) / 2
+    val latSpan = maxLat - minLat
+    val lonSpan = maxLon - minLon
+    val padding = 0.1
 
-            val latSpan = finalMaxLat - finalMinLat
-            val lonSpan = finalMaxLon - finalMinLon
-            val maxSpan = max(latSpan, lonSpan)
+    minLat -= latSpan * padding
+    maxLat += latSpan * padding
+    minLon -= lonSpan * padding
+    maxLon += lonSpan * padding
 
-            val zoom = when {
-                maxSpan > 10 -> 5.0
-                maxSpan > 5 -> 7.0
-                maxSpan > 1 -> 9.0
-                maxSpan > 0.5 -> 11.0
-                maxSpan > 0.1 -> 13.0
-                else -> 15.0
-            }
+    val centerLat = (minLat + maxLat) / 2
+    val centerLon = (minLon + maxLon) / 2
 
-            CameraPosition(
-                target = Position(latitude = centerLat, longitude = centerLon),
-                zoom = zoom
-            )
-        }
+    val zoom = calculateZoomLevel(minLat, maxLat, minLon, maxLon)
+
+    return CameraPosition(
+        target = Position(latitude = centerLat, longitude = centerLon),
+        zoom = zoom
+    )
+}
+
+private fun calculateZoomLevel(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double): Double {
+    val latDiff = maxLat - minLat
+    val lonDiff = maxLon - minLon
+    val maxDiff = max(latDiff, lonDiff)
+
+    return when {
+        maxDiff > 180.0 -> 1.0
+        maxDiff > 90.0 -> 2.0
+        maxDiff > 45.0 -> 3.0
+        maxDiff > 22.0 -> 4.0
+        maxDiff > 11.0 -> 5.0
+        maxDiff > 5.0 -> 6.0
+        maxDiff > 2.5 -> 7.0
+        maxDiff > 1.2 -> 8.0
+        maxDiff > 0.6 -> 9.0
+        maxDiff > 0.3 -> 10.0
+        maxDiff > 0.15 -> 11.0
+        maxDiff > 0.07 -> 12.0
+        maxDiff > 0.035 -> 13.0
+        maxDiff > 0.017 -> 14.0
+        else -> 15.0
     }
 }

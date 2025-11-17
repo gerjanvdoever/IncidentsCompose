@@ -1,25 +1,14 @@
 package com.example.incidentscompose.ui.screens.incidents
 
-import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,17 +24,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.IncidentCategory
+import com.example.incidentscompose.ui.components.IncidentMap
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
+import com.example.incidentscompose.util.PhotoPermissionHandler
 import com.example.incidentscompose.util.PhotoUtils
+import com.example.incidentscompose.util.rememberPhotoPermissionLauncher
+import com.example.incidentscompose.viewmodel.ReportIncidentUiState
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
 import org.koin.androidx.compose.koinViewModel
-import androidx.core.net.toUri
-import com.example.incidentscompose.data.model.IncidentResponse
-import com.example.incidentscompose.ui.components.IncidentMap
 
 @Composable
 fun ReportIncidentScreen(
@@ -58,34 +50,19 @@ fun ReportIncidentScreen(
     val isLoading by viewModel.isBusy.collectAsState()
     val context = LocalContext.current
 
-    // Permission launcher
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val allRequiredGranted = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val hasCamera = permissions[Manifest.permission.CAMERA] == true
-            val hasFullImageAccess = permissions[Manifest.permission.READ_MEDIA_IMAGES] == true
-            val hasSelectedAccess = permissions[Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED] == true
-
-            hasCamera && (hasFullImageAccess || hasSelectedAccess)
-        } else {
-            permissions.values.all { it }
-        }
-
-        viewModel.updatePermissions(allRequiredGranted)
+    val photoPermissionHandler = remember {
+        PhotoPermissionHandler(
+            context = context,
+            onPermissionsResult = { granted ->
+                viewModel.onPhotoPermissionResult(granted)
+            }
+        )
     }
 
-    // Request permissions on first composition
-    LaunchedEffect(Unit) {
-        val hasPermissions = PhotoUtils.hasAllPermissions(context)
-        viewModel.updatePermissions(hasPermissions)
-
-        if (!hasPermissions) {
-            permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
-        }
+    val photoPermissionLauncher = rememberPhotoPermissionLauncher { granted ->
+        viewModel.onPhotoPermissionResult(granted)
     }
 
-    // Photo picker launcher
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -93,7 +70,6 @@ fun ReportIncidentScreen(
     }
 
     var currentCameraUri by remember { mutableStateOf<Uri?>(null) }
-
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -103,40 +79,145 @@ fun ReportIncidentScreen(
         currentCameraUri = null
     }
 
-    LaunchedEffect(uiState.showImageSourceDialog) {
-        if (uiState.showImageSourceDialog) {
-            if (uiState.hasPermissions) {
-                // Dialog will be shown — wait for user selection
-            } else {
-                permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
-                viewModel.dismissImageSourceDialog()
-            }
-        }
-    }
+    ReportIncidentDialogs(
+        uiState = uiState,
+        viewModel = viewModel,
+        cameraLauncher = cameraLauncher,
+        photoPickerLauncher = photoPickerLauncher,
+        onCameraUriCreated = { currentCameraUri = it },
+        onNavigateToLogin = onNavigateToLogin,
+        onNavigateToIncidentList = onNavigateToIncidentList,
+        context = context
+    )
 
+    // Main content
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopNavBar(
+                    title = stringResource(R.string.report_incident),
+                    showBackButton = true,
+                    onBackClick = onNavigateBack,
+                )
+            }
+        ) { paddingValues ->
+            ReportIncidentContent(
+                paddingValues = paddingValues,
+                uiState = uiState,
+                viewModel = viewModel,
+                isLoading = isLoading,
+                photoPermissionHandler = photoPermissionHandler,
+                photoPermissionLauncher = photoPermissionLauncher
+            )
+        }
+        LoadingOverlay(isLoading = isLoading)
+    }
+}
+
+@Composable
+private fun ReportIncidentContent(
+    paddingValues: PaddingValues,
+    uiState: ReportIncidentUiState,
+    viewModel: ReportIncidentViewModel,
+    isLoading: Boolean,
+    photoPermissionHandler: PhotoPermissionHandler,
+    photoPermissionLauncher: androidx.activity.compose.ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>
+) {
+    var parentScrollEnabled by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .verticalScroll(rememberScrollState(), enabled = parentScrollEnabled)
+    ) {
+        WarningBanner()
+
+        CategorySelectionCard(
+            selectedCategory = uiState.selectedCategory,
+            onCategorySelected = { viewModel.updateCategory(it) }
+        )
+
+        DescriptionInputCard(
+            description = uiState.description,
+            onDescriptionChange = { viewModel.updateDescription(it) }
+        )
+
+        PhotoUploadCard(
+            photos = uiState.photos.map { it.toUri() },
+            onAddPhoto = {
+                if (photoPermissionHandler.hasPermissions()) {
+                    viewModel.showImageSourceDialog()
+                } else {
+                    photoPermissionHandler.requestPermissions(photoPermissionLauncher)
+                }
+            },
+            onRemovePhoto = { viewModel.removePhoto(it.toString()) }
+        )
+
+        MapLocationCard(
+            latitude = uiState.latitude,
+            longitude = uiState.longitude,
+            shouldRequestLocationPermission = uiState.shouldRequestLocationPermission,
+            shouldUseCurrentLocation = uiState.shouldUseCurrentLocation,
+            onUseCurrentLocation = {
+                viewModel.requestUseCurrentLocation()
+            },
+            onLocationSelected = { lat, lon ->
+                viewModel.updateLocation(lat, lon)
+            },
+            onMapTouch = { isTouchingMap ->
+                parentScrollEnabled = !isTouchingMap
+            },
+            onLocationPermissionHandled = {
+                viewModel.onLocationPermissionHandled()
+            },
+            onCurrentLocationUsed = {
+                viewModel.onCurrentLocationUsed()
+            },
+            onLocationError = { error ->
+                viewModel.showLocationError(error)
+            }
+        )
+
+        ErrorMessage(errorMessage = uiState.errorMessage)
+
+        SubmitButton(
+            isLoading = isLoading,
+            onClick = { viewModel.submitReport(context) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun ReportIncidentDialogs(
+    uiState: ReportIncidentUiState,
+    viewModel: ReportIncidentViewModel,
+    cameraLauncher: androidx.activity.compose.ManagedActivityResultLauncher<Uri, Boolean>,
+    photoPickerLauncher: androidx.activity.compose.ManagedActivityResultLauncher<PickVisualMediaRequest, Uri?>,
+    onCameraUriCreated: (Uri) -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onNavigateToIncidentList: () -> Unit,
+    context: android.content.Context
+) {
     if (uiState.showImageSourceDialog) {
         ImageSourceDialog(
             onDismiss = { viewModel.dismissImageSourceDialog() },
             onCameraClick = {
                 viewModel.dismissImageSourceDialog()
-                if (uiState.hasPermissions) {
-                    PhotoUtils.createImageUri(context)?.let { uri ->
-                        currentCameraUri = uri
-                        cameraLauncher.launch(uri)
-                    }
-                } else {
-                    permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
+                PhotoUtils.createImageUri(context)?.let { uri ->
+                    onCameraUriCreated(uri)
+                    cameraLauncher.launch(uri)
                 }
             },
             onGalleryClick = {
                 viewModel.dismissImageSourceDialog()
-                if (uiState.hasPermissions) {
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                } else {
-                    permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
-                }
+                photoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
             }
         )
     }
@@ -149,9 +230,10 @@ fun ReportIncidentScreen(
 
     if (uiState.showSuccessDialog) {
         ReportSuccessDialog(
-            onDismiss = { viewModel.dismissSuccessDialog() },
+            onDismiss = { },
             onContinue = {
                 viewModel.dismissSuccessDialog()
+                viewModel.resetForm()
                 if (uiState.createdIncident?.reportedBy != null) {
                     onNavigateToIncidentList()
                 } else {
@@ -160,371 +242,9 @@ fun ReportIncidentScreen(
             }
         )
     }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                TopNavBar(
-                    title = stringResource(R.string.report_incident),
-                    showBackButton = true,
-                    onBackClick = { onNavigateBack() },
-                )
-            }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(MaterialTheme.colorScheme.background)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                WarningBanner()
-
-                CategorySelectionCard(
-                    selectedCategory = uiState.selectedCategory,
-                    onCategorySelected = { viewModel.updateCategory(it) }
-                )
-
-                DescriptionInputCard(
-                    description = uiState.description,
-                    onDescriptionChange = { viewModel.updateDescription(it) }
-                )
-
-                PhotoUploadCard(
-                    photos = uiState.photos.map { it.toUri() },
-                    onAddPhoto = {
-                        if (uiState.hasPermissions) {
-                            viewModel.showImageSourceDialog()
-                        } else {
-                            permissionLauncher.launch(PhotoUtils.getRequiredPermissions())
-                        }
-                    },
-                    onRemovePhoto = { viewModel.removePhoto(it.toString()) }
-                )
-
-                // Updated MapLocationCard with location selection
-                MapLocationCard(
-                    latitude = uiState.latitude,
-                    longitude = uiState.longitude,
-                    onUseCurrentLocation = { viewModel.useCurrentLocation() },
-                    onLocationSelected = { lat, lon ->
-                        viewModel.updateLocation(lat, lon)
-                    }
-                )
-
-                if (!uiState.errorMessage.isNullOrBlank()) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .shadow(4.dp, RoundedCornerShape(8.dp)),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
-                        border = BorderStroke(1.dp, Color(0xFFFECACA))
-                    ) {
-                        Text(
-                            text = uiState.errorMessage ?: "",
-                            color = Color(0xFFDC2626),
-                            modifier = Modifier
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                                .fillMaxWidth(),
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-
-                Button(
-                    onClick = {
-                        viewModel.submitReport(context)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFDC2626),
-                        contentColor = Color.White
-                    ),
-                    enabled = !isLoading
-                ) {
-                    Text(
-                        stringResource(R.string.submit_report),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
-        LoadingOverlay(isLoading = isLoading)
-    }
 }
 
-@Composable
-fun ImageSourceDialog(
-    onDismiss: () -> Unit,
-    onCameraClick: () -> Unit,
-    onGalleryClick: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.add_photo),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Button(
-                    onClick = onCameraClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF0969DA),
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text(
-                        stringResource(R.string.take_photo),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Button(
-                    onClick = onGalleryClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF0969DA),
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text(
-                        stringResource(R.string.choose_from_gallery),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PermissionDeniedDialog(
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp
-        ) {
-            Column(
-                modifier = Modifier.padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Warning,
-                    contentDescription = "Warning",
-                    modifier = Modifier.size(64.dp),
-                    tint = Color(0xFFF59E0B)
-                )
-
-                Text(
-                    text = stringResource(R.string.permission_required),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
-                )
-
-                Text(
-                    text = stringResource(R.string.to_add_photos_please_grant_camera_and_storage_permissions_in_your_device_settings),
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 20.sp
-                )
-
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF0969DA),
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text(
-                        stringResource(R.string.ok),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun MapLocationCard(
-    latitude: Double?,
-    longitude: Double?,
-    onUseCurrentLocation: () -> Unit,
-    onLocationSelected: (Double, Double) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp, 8.dp, 16.dp, 16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, Color(0xFFD0D7DE)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp, 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(R.string.where_did_you_observe_this),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = stringResource(R.string.tap_on_the_map_to_mark_the_exact_location),
-                    fontSize = 13.sp,
-                    color = Color(0xFF656D76)
-                )
-            }
-
-            if (latitude != null && longitude != null) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF0F9FF)
-                    ),
-                    border = BorderStroke(1.dp, Color(0xFFBAE6FD))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = stringResource(R.string.selected_location),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF0369A1)
-                            )
-                            Text(
-                                text = "Lat: ${"%.6f".format(latitude)}, Lng: ${"%.6f".format(longitude)}",
-                                fontSize = 12.sp,
-                                color = Color(0xFF0C4A6E)
-                            )
-                        }
-                        IconButton(
-                            onClick = { /* Clear location if needed */ }
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear location")
-                        }
-                    }
-                }
-            }
-
-            // Replace the placeholder Box with the actual IncidentMap
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .border(1.dp, Color(0xFFD0D7DE), RoundedCornerShape(12.dp))
-                    .clip(RoundedCornerShape(12.dp))
-            ) {
-                IncidentMap(
-                    modifier = Modifier.fillMaxSize(),
-                    incidents = emptyList(),
-                    isLocationSelectionEnabled = true,
-                    allowDetailNavigation = false,
-                    onIncidentClick = { /* Not used in report mode */ },
-                    onLocationSelected = { lat, lon ->
-                        onLocationSelected(lat, lon)
-                    },
-                    userLocation = if (latitude != null && longitude != null) {
-                        latitude to longitude
-                    } else {
-                        // Default location (Netherlands center) or null
-                        52.1326 to 5.2913
-                    }
-                )
-            }
-
-            Button(
-                onClick = onUseCurrentLocation,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFDDF4FF),
-                    contentColor = Color(0xFF0969DA)
-                ),
-                border = BorderStroke(1.dp, Color(0xFF54AEFF)),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-            ) {
-                Icon(
-                    Icons.Default.LocationOn,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    stringResource(R.string.use_sample_location),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
-}
+// Component Composables
 
 @Composable
 fun WarningBanner() {
@@ -714,7 +434,6 @@ fun PhotoUploadCard(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Add photo button
                 Box(
                     modifier = Modifier
                         .size(120.dp)
@@ -753,7 +472,6 @@ fun PhotoUploadCard(
                     }
                 }
 
-                // Photo list
                 photos.forEach { photoUri ->
                     Box(modifier = Modifier.size(120.dp)) {
                         AsyncImage(
@@ -792,12 +510,294 @@ fun PhotoUploadCard(
 }
 
 @Composable
+fun MapLocationCard(
+    latitude: Double?,
+    longitude: Double?,
+    shouldRequestLocationPermission: Boolean,
+    shouldUseCurrentLocation: Boolean,
+    onUseCurrentLocation: () -> Unit,
+    onLocationSelected: (Double, Double) -> Unit,
+    onMapTouch: (Boolean) -> Unit,
+    onLocationPermissionHandled: () -> Unit,
+    onCurrentLocationUsed: () -> Unit,
+    onLocationError: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp, 8.dp, 16.dp, 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, Color(0xFFD0D7DE)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp, 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(R.string.where_did_you_observe_this),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(R.string.tap_on_the_map_to_mark_the_exact_location),
+                    fontSize = 13.sp,
+                    color = Color(0xFF656D76)
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(320.dp)
+                    .border(1.dp, Color(0xFFD0D7DE), RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
+            ) {
+                IncidentMap(
+                    modifier = Modifier.fillMaxSize(),
+                    incidents = emptyList(),
+                    isLocationSelectionEnabled = true,
+                    allowDetailNavigation = false,
+                    onIncidentClick = { },
+                    onLocationSelected = onLocationSelected,
+                    onMapTouch = onMapTouch,
+                    shouldRequestLocationPermission = shouldRequestLocationPermission,
+                    shouldUseCurrentLocation = shouldUseCurrentLocation,
+                    onLocationPermissionHandled = onLocationPermissionHandled,
+                    onCurrentLocationUsed = onCurrentLocationUsed,
+                    onLocationError = onLocationError
+                )
+            }
+
+            Button(
+                onClick = onUseCurrentLocation,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFDDF4FF),
+                    contentColor = Color(0xFF0969DA)
+                ),
+                border = BorderStroke(1.dp, Color(0xFF54AEFF)),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+            ) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.use_current_location),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ErrorMessage(errorMessage: String?) {
+    if (!errorMessage.isNullOrBlank()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .shadow(4.dp, RoundedCornerShape(8.dp)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+            border = BorderStroke(1.dp, Color(0xFFFECACA))
+        ) {
+            Text(
+                text = errorMessage,
+                color = Color(0xFFDC2626),
+                modifier = Modifier
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .fillMaxWidth(),
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun SubmitButton(
+    isLoading: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .height(56.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFFDC2626),
+            contentColor = Color.White
+        ),
+        enabled = !isLoading
+    ) {
+        Text(
+            stringResource(R.string.submit_report),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+fun ImageSourceDialog(
+    onDismiss: () -> Unit,
+    onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.add_photo),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Button(
+                    onClick = onCameraClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0969DA),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        stringResource(R.string.take_photo),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Button(
+                    onClick = onGalleryClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0969DA),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        stringResource(R.string.choose_from_gallery),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PermissionDeniedDialog(onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = "Warning",
+                    modifier = Modifier.size(64.dp),
+                    tint = Color(0xFFF59E0B)
+                )
+
+                Text(
+                    text = stringResource(R.string.permission_required),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = stringResource(R.string.to_add_photos_please_grant_camera_and_storage_permissions_in_your_device_settings),
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp
+                )
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0969DA),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        stringResource(R.string.ok),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ReportSuccessDialog(
     onDismiss: () -> Unit,
     onContinue: () -> Unit
 ) {
     Dialog(
-        onDismissRequest = onDismiss
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
     ) {
         Surface(
             modifier = Modifier
