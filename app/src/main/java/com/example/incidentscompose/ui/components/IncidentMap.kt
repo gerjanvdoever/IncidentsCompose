@@ -41,7 +41,6 @@ import org.maplibre.spatialk.geojson.Position
 import kotlin.collections.listOf
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import org.maplibre.compose.sources.getBaseSource
 import org.maplibre.spatialk.geojson.Feature.Companion.getStringProperty
 
 @Composable
@@ -125,7 +124,7 @@ fun IncidentMap(
                     }
                 }
             ) {
-                // --- INCIDENTS SOURCE ---
+                // incidents source
                 val incidentsSource = rememberGeoJsonSource(
                     GeoJsonData.Features(
                         createIncidentsGeoJson(incidents).takeIf { it.features.isNotEmpty() }
@@ -138,7 +137,7 @@ fun IncidentMap(
                     )
                 )
 
-                // --- SELECTED LOCATION SOURCE ---
+                // selected location source
                 val selectedLocationSource = selectedLocation?.let { location ->
                     val feature = Feature(
                         geometry = Point(Position(location.second, location.first)),
@@ -148,7 +147,7 @@ fun IncidentMap(
                     rememberGeoJsonSource(GeoJsonData.Features(featureCollection))
                 }
 
-                // --- USER LOCATION SOURCE ---
+                // user location source
                 val userLocationSource = userLocation?.let { location ->
                     val feature = Feature(
                         geometry = Point(Position(location.second, location.first)),
@@ -158,7 +157,7 @@ fun IncidentMap(
                     rememberGeoJsonSource(GeoJsonData.Features(featureCollection))
                 }
 
-                // --- INCIDENTS LAYERS ---
+                // incidents layer
                 CircleLayer(
                     id = "incidents-outer",
                     source = incidentsSource,
@@ -192,7 +191,7 @@ fun IncidentMap(
                     color = const(Color.White)
                 )
 
-                // --- SELECTED LOCATION LAYERS ---
+                // Selected Location Layer
                 selectedLocationSource?.let { source ->
                     CircleLayer(
                         id = "selected-location-outer",
@@ -208,7 +207,7 @@ fun IncidentMap(
                     )
                 }
 
-                // --- USER LOCATION LAYERS ---
+                // user location layer
                 userLocationSource?.let { source ->
                     CircleLayer(
                         id = "user-location-outer",
@@ -231,7 +230,6 @@ fun IncidentMap(
             }
         }
 
-        // INCIDENT INFO CARD
         selectedIncident?.let { incident ->
             IncidentInfoCard(
                 incident = incident,
@@ -362,15 +360,15 @@ private fun createIncidentsGeoJson(incidents: List<IncidentResponse>): FeatureCo
                 geometry = Point(Position(incident.longitude, incident.latitude)),
                 properties = buildJsonObject {
                     put("id", incident.id.toString())
-                    put("category", incident.category ?: "")
-                    put("priority", incident.priority ?: "")
-                    put("status", incident.status ?: "")
-                    put("dueAt", incident.dueAt ?: "")
+                    put("category", incident.category)
+                    put("priority", incident.priority)
+                    put("status", incident.status)
+                    put("dueAt", incident.dueAt)
                 },
                 id = JsonPrimitive(incident.id.toString())
             )
-        } catch (e: Exception) {
-            null // Skip any features that cause errors
+        } catch (_: Exception) {
+            null
         }
     }
     return FeatureCollection(features = features)
