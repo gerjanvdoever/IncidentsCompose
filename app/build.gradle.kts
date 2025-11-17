@@ -87,4 +87,5 @@ dependencies {
     implementation(libs.androidx.material3.adaptive.navigation3)
     // MapLibre
     implementation(libs.maplibre.compose)
+    implementation(libs.location.services)
 }

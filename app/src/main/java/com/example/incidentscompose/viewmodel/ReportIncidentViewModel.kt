@@ -18,12 +18,14 @@ data class ReportIncidentUiState(
     val photos: List<String> = emptyList(),
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val currentUserLocation: Pair<Double, Double>? = null,
     val errorMessage: String? = null,
     val showSuccessDialog: Boolean = false,
     val createdIncident: IncidentResponse? = null,
     val showPermissionDeniedWarning: Boolean = false,
     val showImageSourceDialog: Boolean = false,
-    val hasPermissions: Boolean = false
+    val hasPermissions: Boolean = false,
+    val hasLocationPermission: Boolean = false
 )
 
 class ReportIncidentViewModel(
@@ -45,15 +47,49 @@ class ReportIncidentViewModel(
     fun removePhoto(uri: String) =
         _uiState.update { it.copy(photos = it.photos - uri) }
 
+    fun updateCurrentUserLocation(latitude: Double, longitude: Double) {
+        _uiState.update {
+            it.copy(
+                currentUserLocation = latitude to longitude,
+                errorMessage = null
+            )
+        }
+    }
+
     fun useCurrentLocation() {
-        _uiState.update { it.copy(latitude = 51.9851, longitude = 5.5338) }
+        val currentLocation = _uiState.value.currentUserLocation
+        if (currentLocation != null) {
+            _uiState.update {
+                it.copy(
+                    latitude = currentLocation.first,
+                    longitude = currentLocation.second,
+                    errorMessage = null
+                )
+            }
+        } else {
+            showLocationError("Unable to get current location. Please enable location services and try again.")
+        }
+    }
+
+    fun showLocationError(message: String) {
+        _uiState.update { it.copy(errorMessage = message) }
     }
 
     fun updateLocation(latitude: Double, longitude: Double) =
-        _uiState.update { it.copy(latitude = latitude, longitude = longitude) }
+        _uiState.update {
+            it.copy(
+                latitude = latitude,
+                longitude = longitude,
+                errorMessage = null
+            )
+        }
 
     fun clearLocation() =
         _uiState.update { it.copy(latitude = null, longitude = null) }
+
+    fun updateLocationPermission(granted: Boolean) {
+        _uiState.update { it.copy(hasLocationPermission = granted) }
+    }
 
     fun updatePermissions(granted: Boolean) {
         _uiState.update { it.copy(hasPermissions = granted) }
@@ -89,7 +125,6 @@ class ReportIncidentViewModel(
         viewModelScope.launch {
             withLoading {
                 try {
-                    // Create the incident
                     when (val result = repository.createIncident(
                         CreateIncidentRequest(
                             category = state.selectedCategory.name,
@@ -102,7 +137,6 @@ class ReportIncidentViewModel(
                         is ApiResult.Success -> {
                             val incident = result.data
 
-                            // Upload photos
                             state.photos.forEach { uriString ->
                                 val file = PhotoUtils.getFileFromUri(context, uriString.toUri())
                                 if (file != null) {
@@ -120,7 +154,7 @@ class ReportIncidentViewModel(
                                             _uiState.update { it.copy(errorMessage = "Image upload timed out: ${file.name}") }
                                         is ApiResult.Unknown ->
                                             _uiState.update { it.copy(errorMessage = "Unknown error uploading image: ${file.name}") }
-                                        is ApiResult.Unauthorized -> Unit // Should never happen here
+                                        is ApiResult.Unauthorized -> Unit
                                     }
                                 }
                             }
@@ -145,7 +179,7 @@ class ReportIncidentViewModel(
                         is ApiResult.Unknown -> _uiState.update {
                             it.copy(errorMessage = "Unexpected error occurred while reporting incident.")
                         }
-                        is ApiResult.Unauthorized -> Unit // Should never happen
+                        is ApiResult.Unauthorized -> Unit
                     }
                 } catch (e: Exception) {
                     _uiState.update {
@@ -155,7 +189,6 @@ class ReportIncidentViewModel(
             }
         }
     }
-
 
     fun dismissSuccessDialog() =
         _uiState.update { it.copy(showSuccessDialog = false) }

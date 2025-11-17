@@ -115,4 +115,5 @@
     <string name="priority_lowercase">Priority</string>
     <string name="status_lowercase">Status</string>
     <string name="category_lowercase">Category</string>
+    <string name="use_current_location">Use Current Location</string>
 </resources>

@@ -116,4 +116,5 @@
     <string name="priority_lowercase">Prioriteit</string>
     <string name="status_lowercase">Status</string>
     <string name="category_lowercase">Categorie</string>
+    <string name="use_current_location">Gebruik huidige locatie</string>
 </resources>

@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -12,11 +13,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.util.LocationPermissionHandler
+import com.example.incidentscompose.util.rememberPermissionLauncher
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.maplibre.compose.camera.CameraPosition
@@ -51,23 +55,32 @@ fun IncidentMap(
     allowDetailNavigation: Boolean = false,
     onIncidentClick: (IncidentResponse) -> Unit = {},
     onLocationSelected: (Double, Double) -> Unit = { _, _ -> },
-    userLocation: Pair<Double, Double>? = null
+    userLocation: Pair<Double, Double>? = null,
+    onMapTouch: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
 
-    var hasLocationPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
+    // Track permission state - now required to show map at all
+    var hasLocationPermission by remember { mutableStateOf(false) }
+
+    val locationPermissionHandler = remember {
+        LocationPermissionHandler(
+            context = context,
+            onPermissionResult = { granted ->
+                hasLocationPermission = granted
+            },
+            onLocationFetched = { _, _ -> },
+            onError = { _ -> }
         )
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    val permissionLauncher = rememberPermissionLauncher { isGranted ->
         hasLocationPermission = isGranted
+    }
+
+    // Initialize permission state
+    LaunchedEffect(Unit) {
+        hasLocationPermission = locationPermissionHandler.hasPermission()
     }
 
     var selectedIncident by remember { mutableStateOf<IncidentResponse?>(null) }
@@ -78,30 +91,25 @@ fun IncidentMap(
         firstPosition = calculateInitialCamera(incidents, userLocation)
     )
 
-    Box(modifier = modifier) {
-        if (!hasLocationPermission && userLocation != null) {
-            Column(
+    Box(
+        modifier = modifier
+    ) {
+        // CHANGED: Only show map when we have location permission
+        if (hasLocationPermission) {
+            MaplibreMap(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Location permission is needed to show your current location",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                Button(onClick = {
-                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                }) {
-                    Text("Grant Permission")
-                }
-            }
-        } else {
-            MaplibreMap(
-                modifier = Modifier.fillMaxSize(),
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                when {
+                                    event.changes.any { it.pressed } -> onMapTouch(true)   // touching map -> disable parent scroll
+                                    event.changes.all { !it.pressed } -> onMapTouch(false) // released -> enable parent scroll
+                                }
+                            }
+                        }
+                    },
                 baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/liberty"),
                 cameraState = camera,
                 options = MapOptions(
@@ -147,7 +155,7 @@ fun IncidentMap(
                     rememberGeoJsonSource(GeoJsonData.Features(featureCollection))
                 }
 
-                // user location source
+                // user location source - now always show since we have permission
                 val userLocationSource = userLocation?.let { location ->
                     val feature = Feature(
                         geometry = Point(Position(location.second, location.first)),
@@ -207,7 +215,7 @@ fun IncidentMap(
                     )
                 }
 
-                // user location layer
+                // user location layer - now always show since we have permission
                 userLocationSource?.let { source ->
                     CircleLayer(
                         id = "user-location-outer",
@@ -215,8 +223,10 @@ fun IncidentMap(
                         radius = const(10.dp),
                         color = const(Color(0xFF4CAF50)),
                         onClick = {
-                            selectedLocation = userLocation
-                            onLocationSelected(userLocation.first, userLocation.second)
+                            userLocation?.let { location ->
+                                selectedLocation = location
+                                onLocationSelected(location.first, location.second)
+                            }
                             ClickResult.Consume
                         }
                     )
@@ -226,6 +236,27 @@ fun IncidentMap(
                         radius = const(4.dp),
                         color = const(Color.White)
                     )
+                }
+            }
+        } else {
+            // Show permission request UI when we don't have permission
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Location permission is required to show the map",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                Button(onClick = {
+                    permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                }) {
+                    Text("Grant Permission")
                 }
             }
         }
