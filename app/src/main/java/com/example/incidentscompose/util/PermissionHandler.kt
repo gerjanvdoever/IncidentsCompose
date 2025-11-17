@@ -38,12 +38,14 @@ class PhotoPermissionHandler(
 }
 
 // location
+
 class LocationPermissionHandler(
     private val context: Context,
     private val onPermissionResult: (Boolean) -> Unit,
     private val onLocationFetched: (Double, Double) -> Unit,
     private val onError: (String) -> Unit
 ) {
+
     fun hasPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
             context,
@@ -58,15 +60,16 @@ class LocationPermissionHandler(
     suspend fun handleLocationRequest(granted: Boolean) {
         onPermissionResult(granted)
 
-        if (granted) {
-            try {
-                val (lat, lon) = LocationManager.getCurrentLocation(context).getOrThrow()
-                onLocationFetched(lat, lon)
-            } catch (error: Throwable) {
-                onError(error.message ?: "Unable to get current location")
-            }
-        } else {
-            onError("Location permission denied. Please enable location services.")
+        if (!granted) {
+            onError("Location permission denied")
+            return
+        }
+
+        try {
+            val (lat, lon) = LocationManager.getCurrentLocation(context).getOrThrow()
+            onLocationFetched(lat, lon)
+        } catch (e: Exception) {
+            onError(e.message ?: "Unable to fetch location")
         }
     }
 }

@@ -107,7 +107,7 @@
     <string name="list">List</string>
     <string name="map">Map</string>
     <string name="users">Users</string>
-    <string name="search_incidents">Search incidents...</string>
+    <string name="search_incidents">Search incidents…</string>
     <string name="filter">Filter</string>
     <string name="filter_incidents">Filter Incidents</string>
     <string name="apply">Apply</string>
@@ -116,4 +116,7 @@
     <string name="status_lowercase">Status</string>
     <string name="category_lowercase">Category</string>
     <string name="use_current_location">Use Current Location</string>
+    <string name="go_to_details">Go to details</string>
+    <string name="location_permission_is_required_to_show_the_map">Location permission is required to show the map</string>
+    <string name="grant_permission">Grant Permission</string>
 </resources>

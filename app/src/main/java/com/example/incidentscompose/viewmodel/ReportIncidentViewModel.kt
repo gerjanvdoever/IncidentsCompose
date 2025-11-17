@@ -18,14 +18,13 @@ data class ReportIncidentUiState(
     val photos: List<String> = emptyList(),
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val currentUserLocation: Pair<Double, Double>? = null,
     val errorMessage: String? = null,
     val showSuccessDialog: Boolean = false,
     val createdIncident: IncidentResponse? = null,
     val showPermissionDeniedWarning: Boolean = false,
     val showImageSourceDialog: Boolean = false,
-    val hasPermissions: Boolean = false,
-    val hasLocationPermission: Boolean = false
+    val shouldRequestLocationPermission: Boolean = false,
+    val shouldUseCurrentLocation: Boolean = false
 )
 
 class ReportIncidentViewModel(
@@ -47,34 +46,6 @@ class ReportIncidentViewModel(
     fun removePhoto(uri: String) =
         _uiState.update { it.copy(photos = it.photos - uri) }
 
-    fun updateCurrentUserLocation(latitude: Double, longitude: Double) {
-        _uiState.update {
-            it.copy(
-                currentUserLocation = latitude to longitude,
-                errorMessage = null
-            )
-        }
-    }
-
-    fun useCurrentLocation() {
-        val currentLocation = _uiState.value.currentUserLocation
-        if (currentLocation != null) {
-            _uiState.update {
-                it.copy(
-                    latitude = currentLocation.first,
-                    longitude = currentLocation.second,
-                    errorMessage = null
-                )
-            }
-        } else {
-            showLocationError("Unable to get current location. Please enable location services and try again.")
-        }
-    }
-
-    fun showLocationError(message: String) {
-        _uiState.update { it.copy(errorMessage = message) }
-    }
-
     fun updateLocation(latitude: Double, longitude: Double) =
         _uiState.update {
             it.copy(
@@ -87,14 +58,36 @@ class ReportIncidentViewModel(
     fun clearLocation() =
         _uiState.update { it.copy(latitude = null, longitude = null) }
 
-    fun updateLocationPermission(granted: Boolean) {
-        _uiState.update { it.copy(hasLocationPermission = granted) }
+    fun showLocationError(message: String) {
+        _uiState.update { it.copy(errorMessage = message) }
     }
 
-    fun updatePermissions(granted: Boolean) {
-        _uiState.update { it.copy(hasPermissions = granted) }
-        if (!granted) showPermissionDeniedWarning()
+    fun requestUseCurrentLocation() {
+        _uiState.update {
+            it.copy(
+                shouldRequestLocationPermission = true,
+                shouldUseCurrentLocation = true
+            )
+        }
     }
+
+    fun onLocationPermissionHandled() {
+        _uiState.update {
+            it.copy(shouldRequestLocationPermission = false)
+        }
+    }
+
+    fun onCurrentLocationUsed() {
+        _uiState.update {
+            it.copy(shouldUseCurrentLocation = false)
+        }
+    }
+
+    fun showImageSourceDialog() =
+        _uiState.update { it.copy(showImageSourceDialog = true) }
+
+    fun dismissImageSourceDialog() =
+        _uiState.update { it.copy(showImageSourceDialog = false) }
 
     private fun showPermissionDeniedWarning() =
         _uiState.update { it.copy(showPermissionDeniedWarning = true) }
@@ -102,11 +95,13 @@ class ReportIncidentViewModel(
     fun dismissPermissionWarning() =
         _uiState.update { it.copy(showPermissionDeniedWarning = false) }
 
-    fun showImageSourceDialog() =
-        _uiState.update { it.copy(showImageSourceDialog = true) }
-
-    fun dismissImageSourceDialog() =
-        _uiState.update { it.copy(showImageSourceDialog = false) }
+    fun onPhotoPermissionResult(granted: Boolean) {
+        if (granted) {
+            showImageSourceDialog()
+        } else {
+            showPermissionDeniedWarning()
+        }
+    }
 
     fun submitReport(context: Context) {
         val state = _uiState.value
@@ -192,4 +187,12 @@ class ReportIncidentViewModel(
 
     fun dismissSuccessDialog() =
         _uiState.update { it.copy(showSuccessDialog = false) }
+
+    fun resetForm() {
+        _uiState.update {
+            ReportIncidentUiState(
+                selectedCategory = IncidentCategory.COMMUNAL
+            )
+        }
+    }
 }

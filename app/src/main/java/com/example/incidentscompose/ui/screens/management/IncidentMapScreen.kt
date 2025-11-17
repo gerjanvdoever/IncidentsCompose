@@ -76,7 +76,6 @@ fun IncidentMapScreen(
                         onNavigateToDetail(incident.id)
                     },
                     onLocationSelected = { _, _ -> },
-                    userLocation = null,
                     onMapTouch = {  }
                 )
             }

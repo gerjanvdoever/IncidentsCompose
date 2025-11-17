@@ -117,4 +117,7 @@
     <string name="status_lowercase">Status</string>
     <string name="category_lowercase">Categorie</string>
     <string name="use_current_location">Gebruik huidige locatie</string>
+    <string name="go_to_details">Ga naar details</string>
+    <string name="location_permission_is_required_to_show_the_map">Toestemming voor locatie is nodig om de kaart te laten zien</string>
+    <string name="grant_permission">Geef toestemming</string>
 </resources>

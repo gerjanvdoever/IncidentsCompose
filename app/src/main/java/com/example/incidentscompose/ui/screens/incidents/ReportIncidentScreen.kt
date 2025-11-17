@@ -1,6 +1,5 @@
 package com.example.incidentscompose.ui.screens.incidents
 
-import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -25,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import com.example.incidentscompose.R
@@ -32,13 +32,11 @@ import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.ui.components.IncidentMap
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
-import com.example.incidentscompose.util.LocationManager
-import com.example.incidentscompose.util.LocationPermissionHandler
+import com.example.incidentscompose.util.PhotoPermissionHandler
 import com.example.incidentscompose.util.PhotoUtils
-import com.example.incidentscompose.util.rememberPermissionLauncher
+import com.example.incidentscompose.util.rememberPhotoPermissionLauncher
 import com.example.incidentscompose.viewmodel.ReportIncidentUiState
 import com.example.incidentscompose.viewmodel.ReportIncidentViewModel
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -51,40 +49,20 @@ fun ReportIncidentScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isLoading by viewModel.isBusy.collectAsState()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    // Permission launchers - only created, not launched immediately
-    val photoPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val allRequiredGranted = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val hasCamera = permissions[Manifest.permission.CAMERA] == true
-            val hasFullImageAccess = permissions[Manifest.permission.READ_MEDIA_IMAGES] == true
-            val hasSelectedAccess = permissions[Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED] == true
-            hasCamera && (hasFullImageAccess || hasSelectedAccess)
-        } else {
-            permissions.values.all { it }
-        }
-        viewModel.updatePermissions(allRequiredGranted)
-
-        // Show image source dialog if permissions are granted
-        if (allRequiredGranted) {
-            viewModel.showImageSourceDialog()
-        }
-    }
-
-    val locationPermissionLauncher = rememberPermissionLauncher { granted ->
-        viewModel.updateLocationPermission(granted)
-        if (granted) {
-            scope.launch {
-                fetchLocation(context, viewModel)
+    val photoPermissionHandler = remember {
+        PhotoPermissionHandler(
+            context = context,
+            onPermissionsResult = { granted ->
+                viewModel.onPhotoPermissionResult(granted)
             }
-        } else {
-            viewModel.showLocationError("Location permission denied. Please enable location services.")
-        }
+        )
     }
 
-    // Photo pickers
+    val photoPermissionLauncher = rememberPhotoPermissionLauncher { granted ->
+        viewModel.onPhotoPermissionResult(granted)
+    }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -101,16 +79,9 @@ fun ReportIncidentScreen(
         currentCameraUri = null
     }
 
-    // Initialize location only (no automatic photo permission requests)
-    LaunchedEffect(Unit) {
-        initializeLocation(context, viewModel)
-    }
-
-    // Handle dialogs
     ReportIncidentDialogs(
         uiState = uiState,
         viewModel = viewModel,
-        photoPermissionLauncher = photoPermissionLauncher,
         cameraLauncher = cameraLauncher,
         photoPickerLauncher = photoPickerLauncher,
         onCameraUriCreated = { currentCameraUri = it },
@@ -135,10 +106,8 @@ fun ReportIncidentScreen(
                 uiState = uiState,
                 viewModel = viewModel,
                 isLoading = isLoading,
-                context = context,
-                photoPermissionLauncher = photoPermissionLauncher,
-                locationPermissionLauncher = locationPermissionLauncher,
-                scope = scope
+                photoPermissionHandler = photoPermissionHandler,
+                photoPermissionLauncher = photoPermissionLauncher
             )
         }
         LoadingOverlay(isLoading = isLoading)
@@ -151,12 +120,11 @@ private fun ReportIncidentContent(
     uiState: ReportIncidentUiState,
     viewModel: ReportIncidentViewModel,
     isLoading: Boolean,
-    context: android.content.Context,
-    photoPermissionLauncher: androidx.activity.compose.ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>,
-    locationPermissionLauncher: androidx.activity.compose.ManagedActivityResultLauncher<String, Boolean>,
-    scope: kotlinx.coroutines.CoroutineScope
+    photoPermissionHandler: PhotoPermissionHandler,
+    photoPermissionLauncher: androidx.activity.compose.ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>
 ) {
     var parentScrollEnabled by remember { mutableStateOf(true) }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -179,11 +147,10 @@ private fun ReportIncidentContent(
         PhotoUploadCard(
             photos = uiState.photos.map { it.toUri() },
             onAddPhoto = {
-                // Only request permissions when the add photo button is pressed
-                if (PhotoUtils.hasAllPermissions(context)) {
+                if (photoPermissionHandler.hasPermissions()) {
                     viewModel.showImageSourceDialog()
                 } else {
-                    photoPermissionLauncher.launch(PhotoUtils.getRequiredPermissions())
+                    photoPermissionHandler.requestPermissions(photoPermissionLauncher)
                 }
             },
             onRemovePhoto = { viewModel.removePhoto(it.toString()) }
@@ -192,33 +159,26 @@ private fun ReportIncidentContent(
         MapLocationCard(
             latitude = uiState.latitude,
             longitude = uiState.longitude,
-            currentUserLocation = uiState.currentUserLocation,
+            shouldRequestLocationPermission = uiState.shouldRequestLocationPermission,
+            shouldUseCurrentLocation = uiState.shouldUseCurrentLocation,
             onUseCurrentLocation = {
-                // Create a location permission handler to check permission
-                val locationHandler = LocationPermissionHandler(
-                    context = context,
-                    onPermissionResult = { /* handled by launcher */ },
-                    onLocationFetched = { lat, lon ->
-                        viewModel.updateCurrentUserLocation(lat, lon)
-                        viewModel.useCurrentLocation()
-                    },
-                    onError = { error ->
-                        viewModel.showLocationError(error)
-                    }
-                )
-
-                if (locationHandler.hasPermission()) {
-                    scope.launch {
-                        fetchLocation(context, viewModel)
-                    }
-                } else {
-                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                }
+                viewModel.requestUseCurrentLocation()
             },
             onLocationSelected = { lat, lon ->
                 viewModel.updateLocation(lat, lon)
             },
-            onMapTouch = { isTouchingMap -> parentScrollEnabled = !isTouchingMap }
+            onMapTouch = { isTouchingMap ->
+                parentScrollEnabled = !isTouchingMap
+            },
+            onLocationPermissionHandled = {
+                viewModel.onLocationPermissionHandled()
+            },
+            onCurrentLocationUsed = {
+                viewModel.onCurrentLocationUsed()
+            },
+            onLocationError = { error ->
+                viewModel.showLocationError(error)
+            }
         )
 
         ErrorMessage(errorMessage = uiState.errorMessage)
@@ -236,7 +196,6 @@ private fun ReportIncidentContent(
 private fun ReportIncidentDialogs(
     uiState: ReportIncidentUiState,
     viewModel: ReportIncidentViewModel,
-    photoPermissionLauncher: androidx.activity.compose.ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>,
     cameraLauncher: androidx.activity.compose.ManagedActivityResultLauncher<Uri, Boolean>,
     photoPickerLauncher: androidx.activity.compose.ManagedActivityResultLauncher<PickVisualMediaRequest, Uri?>,
     onCameraUriCreated: (Uri) -> Unit,
@@ -271,9 +230,10 @@ private fun ReportIncidentDialogs(
 
     if (uiState.showSuccessDialog) {
         ReportSuccessDialog(
-            onDismiss = { viewModel.dismissSuccessDialog() },
+            onDismiss = { },
             onContinue = {
                 viewModel.dismissSuccessDialog()
+                viewModel.resetForm()
                 if (uiState.createdIncident?.reportedBy != null) {
                     onNavigateToIncidentList()
                 } else {
@@ -553,10 +513,14 @@ fun PhotoUploadCard(
 fun MapLocationCard(
     latitude: Double?,
     longitude: Double?,
+    shouldRequestLocationPermission: Boolean,
+    shouldUseCurrentLocation: Boolean,
     onUseCurrentLocation: () -> Unit,
     onLocationSelected: (Double, Double) -> Unit,
-    currentUserLocation: Pair<Double, Double>? = null,
-    onMapTouch: (Boolean) -> Unit
+    onMapTouch: (Boolean) -> Unit,
+    onLocationPermissionHandled: () -> Unit,
+    onCurrentLocationUsed: () -> Unit,
+    onLocationError: (String) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -601,8 +565,12 @@ fun MapLocationCard(
                     allowDetailNavigation = false,
                     onIncidentClick = { },
                     onLocationSelected = onLocationSelected,
-                    userLocation = currentUserLocation,
-                    onMapTouch = onMapTouch
+                    onMapTouch = onMapTouch,
+                    shouldRequestLocationPermission = shouldRequestLocationPermission,
+                    shouldUseCurrentLocation = shouldUseCurrentLocation,
+                    onLocationPermissionHandled = onLocationPermissionHandled,
+                    onCurrentLocationUsed = onCurrentLocationUsed,
+                    onLocationError = onLocationError
                 )
             }
 
@@ -824,7 +792,13 @@ fun ReportSuccessDialog(
     onDismiss: () -> Unit,
     onContinue: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
+    ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -889,34 +863,5 @@ fun ReportSuccessDialog(
                 }
             }
         }
-    }
-}
-
-// Helper functions
-
-private suspend fun initializeLocation(
-    context: android.content.Context,
-    viewModel: ReportIncidentViewModel
-) {
-    val hasLocationPermission = LocationManager.hasLocationPermission(context)
-    viewModel.updateLocationPermission(hasLocationPermission)
-
-    if (hasLocationPermission) {
-        fetchLocation(context, viewModel)
-    }
-}
-
-private suspend fun fetchLocation(
-    context: android.content.Context,
-    viewModel: ReportIncidentViewModel
-) {
-    try {
-        val (lat, lon) = LocationManager.getCurrentLocation(context).getOrThrow()
-        viewModel.updateCurrentUserLocation(lat, lon)
-        viewModel.useCurrentLocation()
-    } catch (error: Throwable) {
-        viewModel.showLocationError(
-            error.message ?: "Unable to get current location. Please ensure GPS is enabled and try again."
-        )
     }
 }
