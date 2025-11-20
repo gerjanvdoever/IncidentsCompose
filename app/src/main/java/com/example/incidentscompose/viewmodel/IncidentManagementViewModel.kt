@@ -2,7 +2,11 @@ package com.example.incidentscompose.viewmodel
 
 import androidx.lifecycle.viewModelScope
 import com.example.incidentscompose.data.model.ApiResult
+import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.data.model.Priority
+import com.example.incidentscompose.data.model.Role
+import com.example.incidentscompose.data.model.Status
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.store.TokenPreferences
 import com.example.incidentscompose.ui.states.BaseViewModel
@@ -17,8 +21,8 @@ class IncidentManagementViewModel(
     private val tokenPreferences: TokenPreferences
 ) : BaseViewModel() {
 
-    private val _userRole = MutableStateFlow<String?>(null)
-    val userRole: StateFlow<String?> = _userRole.asStateFlow()
+    private val _userRole = MutableStateFlow<Role?>(null)
+    val userRole: StateFlow<Role?> = _userRole.asStateFlow()
 
     private val _allIncidents = MutableStateFlow<List<IncidentResponse>>(emptyList())
     val allIncidents: StateFlow<List<IncidentResponse>> = _allIncidents.asStateFlow()
@@ -38,14 +42,14 @@ class IncidentManagementViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _selectedPriorityFilter = MutableStateFlow<Set<String>>(emptySet())
-    val selectedPriorityFilter: StateFlow<Set<String>> = _selectedPriorityFilter.asStateFlow()
+    private val _selectedPriorityFilter = MutableStateFlow<Set<Priority>>(emptySet())
+    val selectedPriorityFilter: StateFlow<Set<Priority>> = _selectedPriorityFilter.asStateFlow()
 
-    private val _selectedStatusFilter = MutableStateFlow<Set<String>>(emptySet())
-    val selectedStatusFilter: StateFlow<Set<String>> = _selectedStatusFilter.asStateFlow()
+    private val _selectedStatusFilter = MutableStateFlow<Set<Status>>(emptySet())
+    val selectedStatusFilter: StateFlow<Set<Status>> = _selectedStatusFilter.asStateFlow()
 
-    private val _selectedCategoryFilter = MutableStateFlow<Set<String>>(emptySet())
-    val selectedCategoryFilter: StateFlow<Set<String>> = _selectedCategoryFilter.asStateFlow()
+    private val _selectedCategoryFilter = MutableStateFlow<Set<IncidentCategory>>(emptySet())
+    val selectedCategoryFilter: StateFlow<Set<IncidentCategory>> = _selectedCategoryFilter.asStateFlow()
 
     private val _filteredIncidents = MutableStateFlow<List<IncidentResponse>>(emptyList())
     val filteredIncidents: StateFlow<List<IncidentResponse>> = _filteredIncidents.asStateFlow()
@@ -125,17 +129,17 @@ class IncidentManagementViewModel(
         applyFilters()
     }
 
-    fun updatePriorityFilter(priorities: Set<String>) {
+    fun updatePriorityFilter(priorities: Set<Priority>) {
         _selectedPriorityFilter.value = priorities
         applyFilters()
     }
 
-    fun updateStatusFilter(statuses: Set<String>) {
+    fun updateStatusFilter(statuses: Set<Status>) {
         _selectedStatusFilter.value = statuses
         applyFilters()
     }
 
-    fun updateCategoryFilter(categories: Set<String>) {
+    fun updateCategoryFilter(categories: Set<IncidentCategory>) {
         _selectedCategoryFilter.value = categories
         applyFilters()
     }

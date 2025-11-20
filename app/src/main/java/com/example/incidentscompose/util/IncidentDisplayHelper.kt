@@ -1,14 +1,15 @@
 package com.example.incidentscompose.util
 
 import androidx.compose.ui.graphics.Color
+import com.example.incidentscompose.data.model.IncidentCategory
+import com.example.incidentscompose.data.model.Status
 
 object IncidentDisplayHelper {
-    fun getStatusColor(status: String): Color {
-        return when (status.uppercase()) {
-            "ASSIGNED" -> Color(0xFFFF6B35)
-            "RESOLVED" -> Color(0xFF4CAF50)
-            "REPORTED" -> Color(0xFFFFC107)
-            else -> Color.Gray
+    fun getStatusColor(status: Status): Color {
+        return when (status) {
+            Status.REPORTED -> Color(0xFFFFC107)
+            Status.ASSIGNED -> Color(0xFFFF6B35)
+            Status.RESOLVED -> Color(0xFF4CAF50)
         }
     }
 
@@ -24,11 +25,13 @@ object IncidentDisplayHelper {
         }
     }
 
-    fun formatCategoryText(category: String): String {
-        return if (category.isNotEmpty()) {
-            category.lowercase().replaceFirstChar { it.uppercase() }
+
+    fun formatCategoryText(category: IncidentCategory): String {
+        val name = category.name
+        return if (name.isNotEmpty()) {
+            name.lowercase().replaceFirstChar { it.uppercase() }
         } else {
-            category
+            name
         }
     }
 }

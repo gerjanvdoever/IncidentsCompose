@@ -96,7 +96,7 @@ fun UserManagementScreen(
             users.filter { user ->
                 user.username.contains(searchQuery, ignoreCase = true) ||
                         user.email.contains(searchQuery, ignoreCase = true) ||
-                        user.role.contains(searchQuery, ignoreCase = true)
+                        user.role.name.contains(searchQuery, ignoreCase = true)
             }
         }
     }
@@ -262,7 +262,7 @@ fun SearchBar(
 @Composable
 fun UserItem(
     user: UserResponse,
-    onRoleChange: (String) -> Unit,
+    onRoleChange: (Role) -> Unit,
     onDelete: (Long) -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -334,7 +334,7 @@ fun UserItem(
 @Composable
 fun UserCard(
     user: UserResponse,
-    onRoleChange: (String) -> Unit
+    onRoleChange: (Role) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedRole by remember { mutableStateOf(user.role) }
@@ -416,7 +416,7 @@ fun UserCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = selectedRole,
+                            text = selectedRole.name,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,
                             color = Color.White,
@@ -449,7 +449,7 @@ fun UserCard(
                                         modifier = Modifier
                                             .size(12.dp)
                                             .background(
-                                                getRoleColor(role.name),
+                                                getRoleColor(role),
                                                 shape = CircleShape
                                             )
                                     )
@@ -463,8 +463,8 @@ fun UserCard(
                                 }
                             },
                             onClick = {
-                                selectedRole = role.name
-                                onRoleChange(role.name)
+                                selectedRole = role
+                                onRoleChange(role)
                                 expanded = false
                             }
                         )
@@ -526,11 +526,10 @@ fun DeleteConfirmationDialog(
 }
 
 @Composable
-fun getRoleColor(role: String): Color {
-    return when (role.uppercase()) {
-        "ADMIN" -> Color(0xFFE53935)
-        "MANAGER" -> Color(0xFF1E88E5)
-        "USER" -> Color(0xFF43A047)
-        else -> MaterialTheme.colorScheme.primary
+fun getRoleColor(role: Role): Color {
+    return when (role) {
+        Role.ADMIN -> Color(0xFFE53935)
+        Role.OFFICIAL -> Color(0xFF1E88E5)
+        Role.USER -> Color(0xFF43A047)
     }
 }

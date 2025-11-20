@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.example.incidentscompose.R
+import com.example.incidentscompose.data.model.Role
+import com.example.incidentscompose.data.model.Status
 import com.example.incidentscompose.navigation.IncidentListKey
 import com.example.incidentscompose.navigation.IncidentMapKey
 import com.example.incidentscompose.navigation.MyIncidentListKey
@@ -87,13 +89,13 @@ fun MyIncidentListScreen(
 
     val fullName = user?.username ?: stringResource(R.string.loading)
     val totalIncidents = incidents.size
-    val activeIncidents = incidents.count { it.status.lowercase() == "reported" || it.status.lowercase() == "assigned" }
+    val activeIncidents = incidents.count { it.status == Status.REPORTED || it.status == Status.RESOLVED }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (userRole == "OFFICIAL" || userRole == "ADMIN") {
+            if (userRole == Role.OFFICIAL || userRole == Role.ADMIN) {
                 BottomNavBar(
                     modifier = Modifier.navigationBarsPadding(),
                     currentKey = MyIncidentListKey,
@@ -102,7 +104,7 @@ fun MyIncidentListScreen(
                         when (route) {
                             IncidentListKey -> onNavigateToIncidentList()
                             IncidentMapKey -> onNavigateToIncidentMap()
-                            UserManagementKey ->onNavigateToUserManagement()
+                            UserManagementKey -> onNavigateToUserManagement()
                             else -> {}
                         }
                     }
@@ -495,7 +497,7 @@ private fun IncidentCard(
                         color = getStatusColor(incident.status).copy(alpha = 0.1f)
                     ) {
                         Text(
-                            text = incident.status,
+                            text = incident.status.name,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = getStatusColor(incident.status),

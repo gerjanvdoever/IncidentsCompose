@@ -419,7 +419,7 @@ private fun IncidentManagementHeaderCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = incident.priority.uppercase(),
+                                text = incident.priority.name,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = getPriorityColor(incident.priority)
@@ -442,7 +442,7 @@ private fun IncidentManagementHeaderCard(
                                 text = {
                                     Text(
                                         text = priority.name,
-                                        color = getPriorityColor(priority.name)
+                                        color = getPriorityColor(priority)
                                     )
                                 },
                                 onClick = {
@@ -494,7 +494,7 @@ private fun IncidentManagementHeaderCard(
                                         )
                                 )
                                 Text(
-                                    text = incident.status.uppercase(),
+                                    text = incident.status.name,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = getStatusColor(incident.status)
@@ -518,7 +518,7 @@ private fun IncidentManagementHeaderCard(
                                 text = {
                                     Text(
                                         text = status.name,
-                                        color = getStatusColor(status.name)
+                                        color = getStatusColor(status)
                                     )
                                 },
                                 onClick = {
@@ -1002,12 +1002,11 @@ private fun IncidentLocationCard(
 }
 
 @Composable
-private fun getPriorityColor(priority: String): Color {
-    return when (priority.uppercase()) {
-        "LOW" -> Color(0xFF10B981)
-        "MEDIUM" -> Color(0xFFF59E0B)
-        "HIGH" -> Color(0xFFFF6B35)
-        "CRITICAL" -> Color(0xFFDC2626)
-        else -> Color.Gray
+private fun getPriorityColor(priority: Priority): Color {
+    return when (priority) {
+        Priority.LOW -> Color(0xFF10B981)
+        Priority.NORMAL -> Color(0xFFF59E0B)
+        Priority.HIGH -> Color(0xFFFF6B35)
+        Priority.CRITICAL -> (Color(0xFFDC2626))
     }
 }

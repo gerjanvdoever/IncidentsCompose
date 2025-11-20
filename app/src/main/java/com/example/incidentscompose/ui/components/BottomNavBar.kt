@@ -22,57 +22,59 @@ import com.example.incidentscompose.navigation.MyIncidentListKey
 import com.example.incidentscompose.navigation.UserManagementKey
 import com.example.incidentscompose.navigation.IncidentListKey
 import androidx.navigation3.runtime.NavKey
+import com.example.incidentscompose.data.model.Role
 
 sealed class BottomNavItem(
     val key: NavKey,
     val titleResId: Int,
     val icon: Int,
-    val requiredRole: Set<String>
+    val requiredRoles: Set<Role>
 ) {
     data object List : BottomNavItem(
         key = IncidentListKey,
         titleResId = R.string.list,
         icon = R.drawable.list,
-        requiredRole = setOf("OFFICIAL", "ADMIN")
+        requiredRoles = setOf(Role.OFFICIAL, Role.ADMIN)
     )
 
     data object Map : BottomNavItem(
         key = IncidentMapKey,
         titleResId = R.string.map,
         icon = R.drawable.map,
-        requiredRole = setOf("OFFICIAL", "ADMIN")
+        requiredRoles = setOf(Role.OFFICIAL, Role.ADMIN)
     )
 
     data object Users : BottomNavItem(
         key = UserManagementKey,
         titleResId = R.string.users,
         icon = R.drawable.users,
-        requiredRole = setOf("ADMIN")
+        requiredRoles = setOf(Role.ADMIN)
     )
 
     data object Profile : BottomNavItem(
         key = MyIncidentListKey,
         titleResId = R.string.profile,
         icon = R.drawable.profile,
-        requiredRole = setOf("OFFICIAL", "ADMIN")
+        requiredRoles = setOf(Role.OFFICIAL, Role.ADMIN)
     )
 }
+
 
 @Composable
 fun BottomNavBar(
     currentKey: NavKey,
-    userRole: String?,
+    userRole: Role?,
     onNavigateTo: (NavKey) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (userRole == "USER" || userRole == null) return
+    if (userRole == Role.USER || userRole == null) return
 
     val navItems = listOf(
         BottomNavItem.List,
         BottomNavItem.Map,
         BottomNavItem.Users,
         BottomNavItem.Profile
-    ).filter { userRole in it.requiredRole }
+    ).filter { userRole in it.requiredRoles }
 
     NavigationBar(
         modifier = modifier

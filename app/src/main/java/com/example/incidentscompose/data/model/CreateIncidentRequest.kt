@@ -4,9 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CreateIncidentRequest(
-    val category: String,
+    val category: IncidentCategory,
     val description: String,
     val latitude: Double,
     val longitude: Double,
-    val priority: String = "LOW"
+    val priority: Priority = Priority.LOW
 )

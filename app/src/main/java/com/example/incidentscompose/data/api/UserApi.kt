@@ -57,18 +57,12 @@ class UserApi(
             }
         }
 
-    suspend fun updateUserRole(id: Long, role: String): ApiResult<UserResponse> {
-        val roleEnum = try {
-            Role.valueOf(role.uppercase())
-        } catch (e: IllegalArgumentException) {
-            return ApiResult.HttpError(400, "Invalid role: $role")
-        }
-
+    suspend fun updateUserRole(id: Long, role: Role): ApiResult<UserResponse> {
         return performRequest(tokenPreferences) { token ->
             client.put("$baseUrl/$id/role") {
                 header("Authorization", "Bearer $token")
                 contentType(ContentType.Application.Json)
-                setBody(RoleUpdateRequest(roleEnum))
+                setBody(RoleUpdateRequest(role))
             }
         }
     }

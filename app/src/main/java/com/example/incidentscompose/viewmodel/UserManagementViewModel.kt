@@ -15,8 +15,8 @@ class UserManagementViewModel(
     private val tokenPreferences: TokenPreferences
 ) : BaseViewModel() {
 
-    private val _userRole = MutableStateFlow<String?>(null)
-    val userRole: StateFlow<String?> = _userRole.asStateFlow()
+    private val _userRole = MutableStateFlow<Role?>(null)
+    val userRole: StateFlow<Role?> = _userRole.asStateFlow()
 
     private val _users = MutableStateFlow<List<UserResponse>>(emptyList())
     val users: StateFlow<List<UserResponse>> = _users.asStateFlow()
@@ -108,7 +108,7 @@ class UserManagementViewModel(
         }
     }
 
-    fun changeUserRole(userId: Long, newRole: String) {
+    fun changeUserRole(userId: Long, newRole: Role) {
         viewModelScope.launch {
             withLoading {
                 try {
