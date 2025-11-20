@@ -3,6 +3,7 @@ package com.example.incidentscompose.data.store
 import android.content.Context
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.incidentscompose.data.model.Role
 import com.example.incidentscompose.util.JwtDecoder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -32,8 +33,9 @@ class TokenPreferences(private val context: Context) {
         }
     }
 
-    suspend fun getUserRole(): String? {
+    suspend fun getUserRole(): Role? {
         val token = getToken() ?: return null
-        return JwtDecoder.getRoleFromToken(token)
+        val roleString = JwtDecoder.getRoleFromToken(token)?.uppercase() ?: return null
+        return runCatching { Role.valueOf(roleString) }.getOrNull()
     }
 }

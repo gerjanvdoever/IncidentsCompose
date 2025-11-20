@@ -34,11 +34,11 @@ import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.ApiResult
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.data.model.Status
 import com.example.incidentscompose.ui.components.IncidentMap
 import com.example.incidentscompose.ui.components.LoadingOverlay
 import com.example.incidentscompose.ui.components.TopNavBar
 import com.example.incidentscompose.util.ImageUrlHelper
-import com.example.incidentscompose.util.IncidentCategoryUtils
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatCategoryText
 import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
 import com.example.incidentscompose.util.IncidentDisplayHelper.getStatusColor
@@ -69,7 +69,7 @@ fun MyIncidentDetailScreen(
         selectedIncidentFlow.collect { selectedIncident ->
             incident = selectedIncident
             selectedIncident?.let {
-                selectedCategory = IncidentCategoryUtils.safeValueOf(it.category)
+                selectedCategory = it.category
                 editableDescription = it.description
             }
         }
@@ -313,7 +313,7 @@ fun MyIncidentDetailScreen(
                     onDescriptionChange = { editableDescription = it },
                     onSave = {
                         incident?.let { inc ->
-                            if (inc.status.uppercase() == "RESOLVED") {
+                            if (inc.status == Status.RESOLVED) {
                                 showResolvedDialog = true
                             } else {
                                 viewModel.updateIncident(
@@ -326,8 +326,8 @@ fun MyIncidentDetailScreen(
                     },
                     onDelete = {
                         incident?.let { inc ->
-                            val status = inc.status.uppercase()
-                            if (status == "ASSIGNED" || status == "RESOLVED") {
+                            val status = inc.status
+                            if (status == Status.ASSIGNED || status == Status.RESOLVED) {
                                 showCannotDeleteDialog = true
                             } else {
                                 showDeleteConfirmDialog = true
@@ -487,7 +487,7 @@ private fun IncidentHeaderCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = selectedCategory?.let { formatCategoryText(it.name) }
+                                text = selectedCategory?.let { formatCategoryText(it) }
                                     ?: stringResource(R.string.select_category),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -508,7 +508,7 @@ private fun IncidentHeaderCard(
                     ) {
                         IncidentCategory.entries.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(formatCategoryText(category.name)) },
+                                text = { Text(formatCategoryText(category)) },
                                 onClick = {
                                     onCategoryChange(category)
                                     expanded = false
@@ -538,7 +538,7 @@ private fun IncidentHeaderCard(
                             )
                     )
                     Text(
-                        text = incident.status.uppercase(),
+                        text = incident.status.name,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = getStatusColor(incident.status),

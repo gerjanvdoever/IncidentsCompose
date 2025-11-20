@@ -21,7 +21,7 @@ class UserRepository(private val userApi: UserApi) {
     suspend fun getUserById(id: Long): ApiResult<UserResponse> =
         userApi.getUserById(id)
 
-    suspend fun updateUserRole(id: Long, role: String): ApiResult<UserResponse> =
+    suspend fun updateUserRole(id: Long, role: Role): ApiResult<UserResponse> =
         userApi.updateUserRole(id, role)
 
     suspend fun deleteUser(id: Long): ApiResult<Unit> =

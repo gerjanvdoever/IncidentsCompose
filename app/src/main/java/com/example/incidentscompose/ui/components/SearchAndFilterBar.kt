@@ -2,13 +2,7 @@ package com.example.incidentscompose.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,6 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.incidentscompose.R
+import com.example.incidentscompose.data.model.Priority
+import com.example.incidentscompose.data.model.Status
+import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.util.IncidentDisplayHelper
 import com.example.incidentscompose.viewmodel.IncidentManagementViewModel
 import kotlinx.coroutines.flow.StateFlow
@@ -144,10 +141,9 @@ private fun FilterDialogContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Priority Filter
         FilterSection(
             title = stringResource(R.string.priority_lowercase),
-            options = listOf("LOW", "NORMAL", "HIGH", "CRITICAL"),
+            options = Priority.entries,
             selectedOptionsFlow = viewModel.selectedPriorityFilter,
             onOptionsSelected = { viewModel.updatePriorityFilter(it.toSet()) }
         )
@@ -156,7 +152,7 @@ private fun FilterDialogContent(
 
         FilterSection(
             title = stringResource(R.string.status_lowercase),
-            options = listOf("REPORTED", "ASSIGNED", "RESOLVED"),
+            options = Status.entries,
             selectedOptionsFlow = viewModel.selectedStatusFilter,
             onOptionsSelected = { viewModel.updateStatusFilter(it.toSet()) }
         )
@@ -165,7 +161,7 @@ private fun FilterDialogContent(
 
         FilterSection(
             title = stringResource(R.string.category_lowercase),
-            options = listOf("CRIME", "ENVIRONMENT", "COMMUNAL", "TRAFFIC", "OTHER"),
+            options = IncidentCategory.entries,
             selectedOptionsFlow = viewModel.selectedCategoryFilter,
             onOptionsSelected = { viewModel.updateCategoryFilter(it.toSet()) }
         )
@@ -173,11 +169,11 @@ private fun FilterDialogContent(
 }
 
 @Composable
-private fun FilterSection(
+private fun <T : Enum<T>> FilterSection(
     title: String,
-    options: List<String>,
-    selectedOptionsFlow: StateFlow<Set<String>>,
-    onOptionsSelected: (List<String>) -> Unit
+    options: List<T>,
+    selectedOptionsFlow: StateFlow<Set<T>>,
+    onOptionsSelected: (List<T>) -> Unit
 ) {
     val selectedOptions by selectedOptionsFlow.collectAsState()
 
@@ -186,6 +182,7 @@ private fun FilterSection(
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.Bold
     )
+
     HorizontalScrollableFilterChipGroup(
         options = options,
         selectedOptions = selectedOptions.toList(),
@@ -194,10 +191,10 @@ private fun FilterSection(
 }
 
 @Composable
-fun HorizontalScrollableFilterChipGroup(
-    options: List<String>,
-    selectedOptions: List<String>,
-    onOptionsSelected: (List<String>) -> Unit
+fun <T : Enum<T>> HorizontalScrollableFilterChipGroup(
+    options: List<T>,
+    selectedOptions: List<T>,
+    onOptionsSelected: (List<T>) -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -211,16 +208,16 @@ fun HorizontalScrollableFilterChipGroup(
             FilterChip(
                 selected = selectedOptions.contains(option),
                 onClick = {
-                    val newSelection = if (selectedOptions.contains(option)) {
+                    val new = if (selectedOptions.contains(option)) {
                         selectedOptions - option
                     } else {
                         selectedOptions + option
                     }
-                    onOptionsSelected(newSelection)
+                    onOptionsSelected(new)
                 },
                 label = {
                     Text(
-                        text = IncidentDisplayHelper.formatCategoryText(option),
+                        text = IncidentDisplayHelper.formatCategoryText(option as IncidentCategory),
                         fontSize = 12.sp
                     )
                 }

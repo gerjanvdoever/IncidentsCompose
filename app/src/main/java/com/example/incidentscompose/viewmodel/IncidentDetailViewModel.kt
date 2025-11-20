@@ -18,7 +18,7 @@ class IncidentDetailViewModel(
     private val userRepository: UserRepository
 ) : BaseViewModel() {
 
-    private val _userRole = MutableStateFlow<String?>(null)
+    private val _userRole = MutableStateFlow<Role?>(null)
 
     private val _currentIncident = MutableStateFlow<IncidentResponse?>(null)
     val currentIncident: StateFlow<IncidentResponse?> = _currentIncident.asStateFlow()

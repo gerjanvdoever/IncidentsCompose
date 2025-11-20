@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.incidentscompose.R
 import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.data.model.Priority
+import com.example.incidentscompose.data.model.Status
 import com.example.incidentscompose.navigation.IncidentListKey
 import com.example.incidentscompose.navigation.IncidentMapKey
 import com.example.incidentscompose.navigation.MyIncidentListKey
@@ -219,7 +221,7 @@ fun IncidentCard(
 }
 
 @Composable
-fun StatusBadge(status: String) {
+fun StatusBadge(status: Status) {
     val statusColor = IncidentDisplayHelper.getStatusColor(status)
 
     Surface(
@@ -227,7 +229,7 @@ fun StatusBadge(status: String) {
         shape = RoundedCornerShape(8.dp)
     ) {
         Text(
-            text = status.uppercase(),
+            text = status.name,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
@@ -238,13 +240,12 @@ fun StatusBadge(status: String) {
 }
 
 @Composable
-fun PriorityChip(priority: String) {
-    val (backgroundColor, textColor) = when (priority.uppercase()) {
-        "CRITICAL" -> Color(0xFFD32F2F) to Color.White
-        "HIGH" -> Color(0xFFF57C00) to Color.White
-        "NORMAL" -> Color(0xFFFDD835) to Color.Black
-        "LOW" -> Color(0xFF66BB6A) to Color.White
-        else -> Color.Gray to Color.White
+fun PriorityChip(priority: Priority) {
+    val (backgroundColor, textColor) = when (priority) {
+        Priority.CRITICAL -> Color(0xFFD32F2F) to Color.White
+        Priority.HIGH -> Color(0xFFF57C00) to Color.White
+        Priority.NORMAL -> Color(0xFFFDD835) to Color.Black
+        Priority.LOW -> Color(0xFF66BB6A) to Color.White
     }
 
     Surface(
@@ -252,7 +253,7 @@ fun PriorityChip(priority: String) {
         shape = RoundedCornerShape(8.dp)
     ) {
         Text(
-            text = priority.uppercase(),
+            text = priority.name,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,

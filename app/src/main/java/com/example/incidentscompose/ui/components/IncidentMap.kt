@@ -18,7 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.incidentscompose.R
+import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
+import com.example.incidentscompose.data.model.Priority
+import com.example.incidentscompose.data.model.Status
 import com.example.incidentscompose.util.LocationManager
 import com.example.incidentscompose.util.rememberPermissionLauncher
 import kotlinx.serialization.json.JsonObject
@@ -446,17 +449,16 @@ fun IncidentInfoCard(
 }
 
 @Composable
-fun StatusChip(status: String) {
-    val (backgroundColor, textColor) = when (status.uppercase()) {
-        "REPORTED" -> Color(0xFFE3F2FD) to Color(0xFF1976D2)
-        "ASSIGNED" -> Color(0xFFFFF3E0) to Color(0xFFF57C00)
-        "RESOLVED" -> Color(0xFFE8F5E9) to Color(0xFF388E3C)
-        else -> Color(0xFFF5F5F5) to Color.Gray
+fun StatusChip(status: Status) {
+    val (backgroundColor, textColor) = when (status) {
+        Status.REPORTED -> Color(0xFFE3F2FD) to Color(0xFF1976D2)
+        Status.ASSIGNED -> Color(0xFFFFF3E0) to Color(0xFFF57C00)
+        Status.RESOLVED -> Color(0xFFE8F5E9) to Color(0xFF388E3C)
     }
 
     Surface(shape = RoundedCornerShape(16.dp), color = backgroundColor) {
         Text(
-            text = status.uppercase(),
+            text = status.name,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,
             color = textColor,
@@ -466,18 +468,17 @@ fun StatusChip(status: String) {
 }
 
 @Composable
-private fun PriorityChip(priority: String) {
-    val (backgroundColor, textColor) = when (priority.uppercase()) {
-        "LOW" -> Color(0xFFE8F5E9) to Color(0xFF388E3C)
-        "NORMAL" -> Color(0xFFE3F2FD) to Color(0xFF1976D2)
-        "HIGH" -> Color(0xFFFFF3E0) to Color(0xFFF57C00)
-        "CRITICAL" -> Color(0xFFFFEBEE) to Color(0xFFC62828)
-        else -> Color(0xFFF5F5F5) to Color.Gray
+fun PriorityChip(priority: Priority) {
+    val (backgroundColor, textColor) = when (priority) {
+        Priority.LOW -> Color(0xFFE8F5E9) to Color(0xFF388E3C)
+        Priority.NORMAL -> Color(0xFFE3F2FD) to Color(0xFF1976D2)
+        Priority.HIGH -> Color(0xFFFFF3E0) to Color(0xFFF57C00)
+        Priority.CRITICAL -> Color(0xFFFFEBEE) to Color(0xFFC62828)
     }
 
     Surface(shape = RoundedCornerShape(16.dp), color = backgroundColor) {
         Text(
-            text = priority.uppercase(),
+            text = priority.name,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,
             color = textColor,
@@ -485,6 +486,7 @@ private fun PriorityChip(priority: String) {
         )
     }
 }
+
 
 // ---------------------- UTILITY FUNCTIONS ----------------------
 
@@ -495,9 +497,9 @@ private fun createIncidentsGeoJson(incidents: List<IncidentResponse>): FeatureCo
                 geometry = Point(Position(incident.longitude, incident.latitude)),
                 properties = buildJsonObject {
                     put("id", incident.id.toString())
-                    put("category", incident.category)
-                    put("priority", incident.priority)
-                    put("status", incident.status)
+                    put("category", incident.category.name)
+                    put("priority", incident.priority.name)
+                    put("status", incident.status.name)
                     put("dueAt", incident.dueAt)
                 },
                 id = JsonPrimitive(incident.id.toString())
@@ -509,8 +511,8 @@ private fun createIncidentsGeoJson(incidents: List<IncidentResponse>): FeatureCo
     return FeatureCollection(features = features)
 }
 
-private fun formatCategory(category: String): String {
-    return category.lowercase().replaceFirstChar { it.uppercase() }
+private fun formatCategory(category: IncidentCategory): String {
+    return category.name.lowercase().replaceFirstChar { it.uppercase() }
 }
 
 private fun formatDate(dateString: String): String {

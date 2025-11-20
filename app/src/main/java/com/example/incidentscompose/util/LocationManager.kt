@@ -23,9 +23,7 @@ object LocationManager {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    /**
-     * Gets the current location. First tries lastLocation (fast), then requests fresh location if needed.
-     */
+    //Gets the current location. First tries lastLocation (fast), then requests fresh location if needed.
     suspend fun getCurrentLocation(context: Context): Result<Pair<Double, Double>> {
         if (!hasLocationPermission(context)) {
             return Result.failure(SecurityException("Location permission not granted"))
@@ -107,9 +105,7 @@ object LocationManager {
         }
     }
 
-    /**
-     * Observes location updates as a Flow
-     */
+    //Observes location updates as a Flow
     @Suppress("MissingPermission")
     fun observeLocationUpdates(
         context: Context,

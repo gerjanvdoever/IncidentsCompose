@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.data.model.UserResponse
 import com.example.incidentscompose.data.model.ApiResult
+import com.example.incidentscompose.data.model.Role
 import com.example.incidentscompose.data.repository.AuthRepository
 import com.example.incidentscompose.data.repository.IncidentRepository
 import com.example.incidentscompose.data.repository.UserRepository
@@ -32,8 +33,8 @@ class MyIncidentListViewModel(
     private val _logoutEvent = MutableStateFlow(false)
     val logoutEvent: StateFlow<Boolean> = _logoutEvent.asStateFlow()
 
-    private val _userRole = MutableStateFlow<String?>(null)
-    val userRole: StateFlow<String?> = _userRole.asStateFlow()
+    private val _userRole = MutableStateFlow<Role?>(null)
+    val userRole: StateFlow<Role?> = _userRole.asStateFlow()
 
     private val _unauthorizedState = MutableStateFlow(false)
     val unauthorizedState: StateFlow<Boolean> = _unauthorizedState.asStateFlow()

@@ -122,11 +122,11 @@ class ReportIncidentViewModel(
                 try {
                     when (val result = repository.createIncident(
                         CreateIncidentRequest(
-                            category = state.selectedCategory.name,
+                            category = state.selectedCategory,
                             description = state.description,
                             latitude = state.latitude,
                             longitude = state.longitude,
-                            priority = "LOW"
+                            priority = Priority.LOW
                         )
                     )) {
                         is ApiResult.Success -> {
