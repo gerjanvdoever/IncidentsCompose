@@ -3,9 +3,12 @@ package com.example.incidentscompose.util
 import androidx.compose.ui.graphics.Color
 import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.Status
-import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 object IncidentDisplayHelper {
     fun getStatusColor(status: Status): Color {
@@ -16,14 +19,15 @@ object IncidentDisplayHelper {
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     fun formatDateForDisplay(dateString: String): String {
         return try {
             val normalized = if (!dateString.endsWith("Z")) "${dateString}Z" else dateString
             val instant = Instant.parse(normalized)
             val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
 
-            val day = localDateTime.date.dayOfMonth.toString().padStart(2, '0')
-            val month = localDateTime.date.monthNumber.toString().padStart(2, '0')
+            val day = localDateTime.date.day.toString().padStart(2, '0')
+            val month = localDateTime.date.month.number.toString().padStart(2, '0')
             val year = localDateTime.date.year
 
             "$day-$month-$year"

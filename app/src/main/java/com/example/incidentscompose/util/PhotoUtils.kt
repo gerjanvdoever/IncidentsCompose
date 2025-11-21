@@ -7,13 +7,14 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import kotlinx.datetime.LocalDateTime
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
-import java.util.*
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.ExperimentalTime
 
 object PhotoUtils {
 
@@ -83,10 +84,11 @@ object PhotoUtils {
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     fun createTimestamp(): String {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         return "%04d%02d%02d_%02d%02d%02d".format(
-            now.year, now.monthNumber, now.dayOfMonth,
+            now.year, now.month.number, now.day,
             now.hour, now.minute, now.second
         )
     }
