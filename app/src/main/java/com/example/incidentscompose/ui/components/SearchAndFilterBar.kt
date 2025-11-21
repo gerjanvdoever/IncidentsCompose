@@ -217,7 +217,7 @@ fun <T : Enum<T>> HorizontalScrollableFilterChipGroup(
                 },
                 label = {
                     Text(
-                        text = IncidentDisplayHelper.formatCategoryText(option as IncidentCategory),
+                        text = option.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() },
                         fontSize = 12.sp
                     )
                 }
