@@ -7,10 +7,8 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import kotlinx.datetime.LocalDateTime
 import java.io.File
 import java.io.IOException
-import java.text.SimpleDateFormat
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime

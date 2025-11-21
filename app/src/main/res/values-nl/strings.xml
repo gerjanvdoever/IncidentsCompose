@@ -108,7 +108,7 @@
     <string name="list">Lijst</string>
     <string name="map">Kaart</string>
     <string name="users">Gebruikers</string>
-    <string name="search_incidents">Zoek Incidenten...</string>
+    <string name="search_incidents">Zoek Incidenten…</string>
     <string name="filter">Filter</string>
     <string name="filter_incidents">Filter Incidenten</string>
     <string name="apply">Toepassen</string>
