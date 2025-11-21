@@ -22,6 +22,7 @@ import com.example.incidentscompose.data.model.IncidentCategory
 import com.example.incidentscompose.data.model.IncidentResponse
 import com.example.incidentscompose.data.model.Priority
 import com.example.incidentscompose.data.model.Status
+import com.example.incidentscompose.util.IncidentDisplayHelper.formatDateForDisplay
 import com.example.incidentscompose.util.LocationManager
 import com.example.incidentscompose.util.rememberPermissionLauncher
 import kotlinx.serialization.json.JsonObject
@@ -37,8 +38,6 @@ import org.maplibre.compose.style.BaseStyle
 import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.util.ClickResult
-import java.text.SimpleDateFormat
-import java.util.*
 import kotlin.math.max
 import org.maplibre.spatialk.geojson.Feature
 import org.maplibre.spatialk.geojson.FeatureCollection
@@ -423,7 +422,7 @@ fun IncidentInfoCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = formatDate(incident.dueAt),
+                            text = formatDateForDisplay(incident.dueAt),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
@@ -513,17 +512,6 @@ private fun createIncidentsGeoJson(incidents: List<IncidentResponse>): FeatureCo
 
 private fun formatCategory(category: IncidentCategory): String {
     return category.name.lowercase().replaceFirstChar { it.uppercase() }
-}
-
-private fun formatDate(dateString: String): String {
-    return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-        val date = inputFormat.parse(dateString)
-        date?.let { outputFormat.format(it) } ?: dateString
-    } catch (_: Exception) {
-        dateString
-    }
 }
 
 private fun calculateInitialCamera(

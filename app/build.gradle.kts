@@ -88,4 +88,6 @@ dependencies {
     // MapLibre
     implementation(libs.maplibre.compose)
     implementation(libs.location.services)
+    // DateTime
+    implementation(libs.kotlinx.datetime)
 }

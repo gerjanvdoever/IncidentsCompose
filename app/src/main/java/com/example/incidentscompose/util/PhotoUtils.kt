@@ -11,6 +11,9 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 object PhotoUtils {
 
@@ -46,7 +49,7 @@ object PhotoUtils {
 
     fun createImageUri(context: Context): Uri? {
         return try {
-            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val timeStamp = createTimestamp()
             val imageFileName = "INCIDENT_${timeStamp}.jpg"
             val storageDir = File(context.cacheDir, "images").apply { mkdirs() }
             val imageFile = File(storageDir, imageFileName)
@@ -64,7 +67,7 @@ object PhotoUtils {
     fun getFileFromUri(context: Context, uri: Uri): File? {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri)
-            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val timeStamp = createTimestamp()
             val fileName = "incident_image_$timeStamp.jpg"
             val outputFile = File(context.cacheDir, fileName)
 
@@ -78,5 +81,13 @@ object PhotoUtils {
             e.printStackTrace()
             null
         }
+    }
+
+    fun createTimestamp(): String {
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        return "%04d%02d%02d_%02d%02d%02d".format(
+            now.year, now.monthNumber, now.dayOfMonth,
+            now.hour, now.minute, now.second
+        )
     }
 }
