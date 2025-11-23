@@ -42,9 +42,8 @@ class UserViewModel(
                 try {
                     when (val result = userRepository.updateCurrentUser(updateRequest)) {
                         is ApiResult.Success -> _updateSuccess.value = true
-                        is ApiResult.HttpError -> _errorMessage.value = "Update failed: ${result.message}"
-                        is ApiResult.NetworkError -> _errorMessage.value =
-                            "Network error: ${result.exception.message ?: "Please try again"}"
+                        is ApiResult.HttpError -> _errorMessage.value = "Failed to update profile"
+                        is ApiResult.NetworkError -> _errorMessage.value = "Network error, please try again later"
                         is ApiResult.Timeout -> _errorMessage.value = "Request timed out. Please try again."
                         is ApiResult.Unknown -> _errorMessage.value = "Unexpected error occurred."
                         is ApiResult.Unauthorized -> _unauthorizedState.value = true

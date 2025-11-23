@@ -50,7 +50,7 @@ class MyIncidentDetailViewModel(
                         is ApiResult.Success -> incidentDataStore.saveSelectedIncident(result.data)
                         is ApiResult.Timeout -> _toastMessage.value = "Update request timed out."
                         is ApiResult.Unknown -> _toastMessage.value = "Unexpected error while updating."
-                        is ApiResult.HttpError -> _toastMessage.value = "Failed: ${result.message}"
+                        is ApiResult.HttpError -> _toastMessage.value = "Failed to update incident"
                         is ApiResult.NetworkError -> _toastMessage.value =
                             "Network error: ${result.exception.message ?: "Please try again"}"
                         is ApiResult.Unauthorized -> _toastMessage.value = "Unauthorized action."
@@ -74,7 +74,7 @@ class MyIncidentDetailViewModel(
                         is ApiResult.Success -> _toastMessage.value = "Incident deleted successfully."
                         is ApiResult.Timeout -> _toastMessage.value = "Delete request timed out."
                         is ApiResult.Unknown -> _toastMessage.value = "Unexpected error while deleting."
-                        is ApiResult.HttpError -> _toastMessage.value = "Failed: ${result.message}"
+                        is ApiResult.HttpError -> _toastMessage.value = "Failed to delete incident"
                         is ApiResult.NetworkError -> _toastMessage.value =
                             "Network error: ${result.exception.message ?: "Please try again"}"
                         is ApiResult.Unauthorized -> _toastMessage.value = "Unauthorized action."

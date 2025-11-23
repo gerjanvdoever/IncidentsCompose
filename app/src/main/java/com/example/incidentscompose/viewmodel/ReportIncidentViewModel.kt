@@ -48,49 +48,31 @@ class ReportIncidentViewModel(
 
     fun updateLocation(latitude: Double, longitude: Double) =
         _uiState.update {
-            it.copy(
-                latitude = latitude,
-                longitude = longitude,
-                errorMessage = null
-            )
+            it.copy(latitude = latitude, longitude = longitude, errorMessage = null)
         }
 
     fun clearLocation() =
         _uiState.update { it.copy(latitude = null, longitude = null) }
 
-    fun showLocationError(message: String) {
+    fun showLocationError(message: String) =
         _uiState.update { it.copy(errorMessage = message) }
-    }
 
-    fun requestUseCurrentLocation() {
+    fun requestUseCurrentLocation() =
         _uiState.update {
-            it.copy(
-                shouldRequestLocationPermission = true,
-                shouldUseCurrentLocation = true
-            )
+            it.copy(shouldRequestLocationPermission = true, shouldUseCurrentLocation = true)
         }
-    }
 
-    fun onLocationPermissionHandled() {
-        _uiState.update {
-            it.copy(shouldRequestLocationPermission = false)
-        }
-    }
+    fun onLocationPermissionHandled() =
+        _uiState.update { it.copy(shouldRequestLocationPermission = false) }
 
-    fun onCurrentLocationUsed() {
-        _uiState.update {
-            it.copy(shouldUseCurrentLocation = false)
-        }
-    }
+    fun onCurrentLocationUsed() =
+        _uiState.update { it.copy(shouldUseCurrentLocation = false) }
 
     fun showImageSourceDialog() =
         _uiState.update { it.copy(showImageSourceDialog = true) }
 
     fun dismissImageSourceDialog() =
         _uiState.update { it.copy(showImageSourceDialog = false) }
-
-    private fun showPermissionDeniedWarning() =
-        _uiState.update { it.copy(showPermissionDeniedWarning = true) }
 
     fun dismissPermissionWarning() =
         _uiState.update { it.copy(showPermissionDeniedWarning = false) }
@@ -99,100 +81,81 @@ class ReportIncidentViewModel(
         if (granted) {
             showImageSourceDialog()
         } else {
-            showPermissionDeniedWarning()
+            _uiState.update { it.copy(showPermissionDeniedWarning = true) }
         }
     }
 
     fun submitReport(context: Context) {
         val state = _uiState.value
 
-        when {
-            state.description.isBlank() -> {
-                _uiState.update { it.copy(errorMessage = "Please enter a description") }
-                return
-            }
-            state.latitude == null || state.longitude == null -> {
-                _uiState.update { it.copy(errorMessage = "Please select a location") }
-                return
-            }
+        val validationError = when {
+            state.description.isBlank() -> "Please enter a description"
+            state.latitude == null || state.longitude == null -> "Please select a location"
+            else -> null
+        }
+
+        if (validationError != null) {
+            _uiState.update { it.copy(errorMessage = validationError) }
+            return
         }
 
         viewModelScope.launch {
             withLoading {
                 try {
-                    when (val result = repository.createIncident(
+                    val result = repository.createIncident(
                         CreateIncidentRequest(
                             category = state.selectedCategory,
                             description = state.description,
-                            latitude = state.latitude,
-                            longitude = state.longitude,
+                            latitude = state.latitude!!,
+                            longitude = state.longitude!!,
                             priority = Priority.LOW
                         )
-                    )) {
-                        is ApiResult.Success -> {
-                            val incident = result.data
+                    )
 
-                            state.photos.forEach { uriString ->
-                                val file = PhotoUtils.getFileFromUri(context, uriString.toUri())
-                                if (file != null) {
-                                    when (val uploadResult = repository.uploadImageToIncident(
-                                        incidentId = incident.id,
-                                        imageFile = file,
-                                        description = ""
-                                    )) {
-                                        is ApiResult.Success -> Unit
-                                        is ApiResult.HttpError ->
-                                            _uiState.update { it.copy(errorMessage = "Failed to upload image: ${file.name}") }
-                                        is ApiResult.NetworkError ->
-                                            _uiState.update { it.copy(errorMessage = "Network error uploading image: ${file.name}") }
-                                        is ApiResult.Timeout ->
-                                            _uiState.update { it.copy(errorMessage = "Image upload timed out: ${file.name}") }
-                                        is ApiResult.Unknown ->
-                                            _uiState.update { it.copy(errorMessage = "Unknown error uploading image: ${file.name}") }
-                                        is ApiResult.Unauthorized -> Unit
-                                    }
-                                }
-                            }
-
-                            _uiState.update {
-                                it.copy(
-                                    showSuccessDialog = true,
-                                    createdIncident = incident,
-                                    errorMessage = null
-                                )
-                            }
-                        }
-                        is ApiResult.HttpError -> _uiState.update {
-                            it.copy(errorMessage = "Failed to report incident: ${result.message}")
-                        }
-                        is ApiResult.NetworkError -> _uiState.update {
-                            it.copy(errorMessage = "Network error: ${result.exception.message}")
-                        }
-                        is ApiResult.Timeout -> _uiState.update {
-                            it.copy(errorMessage = "Request timed out. Please try again.")
-                        }
-                        is ApiResult.Unknown -> _uiState.update {
-                            it.copy(errorMessage = "Unexpected error occurred while reporting incident.")
-                        }
+                    when (result) {
+                        is ApiResult.Success -> handleIncidentCreated(context, state.photos, result.data)
+                        is ApiResult.HttpError -> setError("Failed to report incident, please try again later")
+                        is ApiResult.NetworkError -> setError("Network error occurred while reporting incident")
+                        is ApiResult.Timeout -> setError("Request timed out. Please try again.")
+                        is ApiResult.Unknown -> setError("Unexpected error occurred while reporting incident.")
                         is ApiResult.Unauthorized -> Unit
                     }
                 } catch (e: Exception) {
-                    _uiState.update {
-                        it.copy(errorMessage = "Unexpected error: ${e.message ?: "Please try again"}")
-                    }
+                    setError("Unexpected error: ${e.message ?: "Please try again"}")
                 }
             }
         }
     }
 
+    private suspend fun handleIncidentCreated(context: Context, photos: List<String>, incident: IncidentResponse) {
+        photos.forEach { uriString ->
+            val file = PhotoUtils.getFileFromUri(context, uriString.toUri())
+            file?.let {
+                when (repository.uploadImageToIncident(
+                    incidentId = incident.id,
+                    imageFile = it,
+                    description = ""
+                )) {
+                    is ApiResult.HttpError -> setError("Failed to upload image: ${file.name}")
+                    is ApiResult.NetworkError -> setError("Network error uploading image: ${file.name}")
+                    is ApiResult.Timeout -> setError("Image upload timed out: ${file.name}")
+                    is ApiResult.Unknown -> setError("Unknown error uploading image: ${file.name}")
+                    else -> Unit
+                }
+            }
+        }
+
+        _uiState.update {
+            it.copy(showSuccessDialog = true, createdIncident = incident, errorMessage = null)
+        }
+    }
+
+    private fun setError(message: String) =
+        _uiState.update { it.copy(errorMessage = message) }
+
     fun dismissSuccessDialog() =
         _uiState.update { it.copy(showSuccessDialog = false) }
 
-    fun resetForm() {
-        _uiState.update {
-            ReportIncidentUiState(
-                selectedCategory = IncidentCategory.COMMUNAL
-            )
-        }
-    }
+    fun resetForm() =
+        _uiState.update { ReportIncidentUiState(selectedCategory = IncidentCategory.COMMUNAL) }
 }

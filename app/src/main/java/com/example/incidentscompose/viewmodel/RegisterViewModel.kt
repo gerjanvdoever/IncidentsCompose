@@ -46,10 +46,10 @@ class RegisterViewModel(
                     _registerState.value = when (result) {
                         is ApiResult.Success -> RegisterState.Success
                         is ApiResult.HttpError -> RegisterState.Error(
-                            "Registration failed: ${result.message} (code ${result.code})"
+                            "Registration failed, please try again later.)"
                         )
                         is ApiResult.NetworkError -> RegisterState.Error(
-                            "Network error: ${result.exception.message ?: "Please try again"}"
+                            "Network error, please check your internet connection and try again"
                         )
                         is ApiResult.Timeout -> RegisterState.Error(
                             "Registration request timed out. Please try again."

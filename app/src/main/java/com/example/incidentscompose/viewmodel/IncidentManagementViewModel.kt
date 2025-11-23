@@ -99,6 +99,42 @@ class IncidentManagementViewModel(
         }
     }
 
+    fun deleteIncident(incidentId: Long) {
+        viewModelScope.launch {
+            when (val result = incidentRepository.deleteIncident(incidentId)) {
+                is ApiResult.Success -> {
+                    val updatedList = _allIncidents.value.filterNot { it.id == incidentId }
+                    _allIncidents.value = updatedList
+
+                    // Update display after deletion
+                    currentDisplayCount = minOf(currentDisplayCount, updatedList.size)
+                    _displayedIncidents.value = updatedList.take(currentDisplayCount)
+
+                    applyFilters()
+                    _toastMessage.value = "Incident deleted successfully"
+                }
+
+                is ApiResult.Unauthorized -> _unauthorizedState.value = true
+
+                is ApiResult.HttpError -> {
+                    _toastMessage.value = "Failed to delete incident: ${result.message}"
+                }
+
+                is ApiResult.NetworkError -> {
+                    _toastMessage.value = "Network error: ${result.exception.message}"
+                }
+
+                is ApiResult.Timeout -> {
+                    _toastMessage.value = "Delete request timed out"
+                }
+
+                is ApiResult.Unknown -> {
+                    _toastMessage.value = "Unexpected error occurred"
+                }
+            }
+        }
+    }
+
     fun loadMoreIncidents() {
         val allIncidents = _allIncidents.value
         val newDisplayCount = minOf(currentDisplayCount + pageSize, allIncidents.size)

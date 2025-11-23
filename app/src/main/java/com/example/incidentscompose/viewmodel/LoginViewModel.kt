@@ -37,10 +37,10 @@ class LoginViewModel(
                     is ApiResult.Success -> _loginState.value = LoginState.Success
 
                     is ApiResult.HttpError -> _loginState.value =
-                        LoginState.Error("Login failed: ${result.message}")
+                        LoginState.Error("Login failed")
 
                     is ApiResult.NetworkError -> _loginState.value =
-                        LoginState.Error("Network error: ${result.exception.message ?: "Please try again"}")
+                        LoginState.Error("Network error, Please check your internet connection or try again later")
 
                     is ApiResult.Timeout -> _loginState.value =
                         LoginState.Error("Request timed out. Please try again.")
