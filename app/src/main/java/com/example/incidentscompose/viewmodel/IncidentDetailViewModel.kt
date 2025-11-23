@@ -166,6 +166,32 @@ class IncidentDetailViewModel(
         }
     }
 
+    fun updateLocation(incidentId: Long, latitude: Double, longitude: Double) {
+        viewModelScope.launch {
+            withLoading {
+                val updateRequest = UpdateIncidentRequest(
+                    latitude = latitude,
+                    longitude = longitude
+                )
+                when (val result = incidentRepository.updateIncident(incidentId, updateRequest)) {
+                    is ApiResult.Success -> {
+                        getIncidentById(incidentId)
+                        _toastMessage.value = "Location updated successfully"
+                    }
+                    is ApiResult.Unauthorized -> _unauthorizedState.value = true
+                    is ApiResult.HttpError -> _toastMessage.value =
+                        "Failed to update location: ${result.message}"
+                    is ApiResult.NetworkError -> _toastMessage.value =
+                        "Network error: ${result.exception.message}"
+                    is ApiResult.Timeout -> _toastMessage.value =
+                        "Request timed out while updating location."
+                    is ApiResult.Unknown -> _toastMessage.value =
+                        "Unexpected error occurred while updating location."
+                }
+            }
+        }
+    }
+
     fun clearToastMessage() {
         _toastMessage.value = null
     }

@@ -119,4 +119,5 @@
     <string name="go_to_details">Go to details</string>
     <string name="location_permission_is_required_to_show_the_map">Location permission is required to show the map</string>
     <string name="grant_permission">Grant Permission</string>
+    <string name="tap_on_the_map_to_select_a_new_location">Tap on the map to select a new location</string>
 </resources>

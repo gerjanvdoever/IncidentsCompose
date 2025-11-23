@@ -52,7 +52,6 @@ fun IncidentDetailScreen(
     incidentId: Long?,
     viewModel: IncidentDetailViewModel = koinViewModel()
 ) {
-
     val incident by viewModel.currentIncident.collectAsState()
     val isBusy by viewModel.isBusy.collectAsState()
     val reportedUser by viewModel.reportedUser.collectAsState()
@@ -62,6 +61,7 @@ fun IncidentDetailScreen(
 
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var selectedImageUrl by remember { mutableStateOf<String?>(null) }
+    var selectedLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
 
     val context = LocalContext.current
 
@@ -75,6 +75,12 @@ fun IncidentDetailScreen(
     LaunchedEffect(unauthorizedState) {
         if (unauthorizedState) {
             onNavigateToMyIncidentList()
+        }
+    }
+
+    LaunchedEffect(incident) {
+        incident?.let {
+            selectedLocation = it.latitude to it.longitude
         }
     }
 
@@ -193,6 +199,7 @@ fun IncidentDetailScreen(
                 IncidentManagementContent(
                     incident = incident!!,
                     reportedUser = reportedUser,
+                    selectedLocation = selectedLocation,
                     userFetchTimeout = userFetchTimeout,
                     onPriorityChange = { priority ->
                         viewModel.updatePriority(incident!!.id, priority)
@@ -205,6 +212,12 @@ fun IncidentDetailScreen(
                     },
                     onImageClick = { imageUrl ->
                         selectedImageUrl = imageUrl
+                    },
+                    onLocationSelected = { lat, lon -> selectedLocation = lat to lon },
+                    onSaveLocation = {
+                        selectedLocation?.let { (lat, lon) ->
+                            viewModel.updateLocation(incident!!.id, lat, lon)
+                        }
                     }
                 )
             }
@@ -269,10 +282,13 @@ private fun IncidentManagementContent(
     incident: IncidentResponse,
     reportedUser: com.example.incidentscompose.data.model.UserResponse?,
     userFetchTimeout: Boolean,
+    selectedLocation: Pair<Double, Double>?,
     onPriorityChange: (Priority) -> Unit,
     onStatusChange: (Status) -> Unit,
     onDelete: () -> Unit,
-    onImageClick: (String) -> Unit
+    onImageClick: (String) -> Unit,
+    onLocationSelected: (Double, Double) -> Unit,
+    onSaveLocation: () -> Unit
 ) {
     var parentScrollEnabled by remember { mutableStateOf(true) }
 
@@ -305,7 +321,9 @@ private fun IncidentManagementContent(
         IncidentLocationCard(
             incident = incident,
             parentScrollEnabled = parentScrollEnabled,
-            onParentScrollEnabledChange = { parentScrollEnabled = it }
+            onParentScrollEnabledChange = { parentScrollEnabled = it },
+            onLocationSelected = onLocationSelected,
+            onSaveLocation = onSaveLocation
         )
 
         DeleteButton(onDelete = onDelete)
@@ -943,7 +961,9 @@ private fun IncidentImagesCard(
 private fun IncidentLocationCard(
     incident: IncidentResponse,
     parentScrollEnabled: Boolean,
-    onParentScrollEnabledChange: (Boolean) -> Unit
+    onParentScrollEnabledChange: (Boolean) -> Unit,
+    onLocationSelected: (Double, Double) -> Unit,
+    onSaveLocation: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -980,6 +1000,14 @@ private fun IncidentLocationCard(
                 )
             }
 
+            // Always show the instruction text
+            Text(
+                text = stringResource(R.string.tap_on_the_map_to_select_a_new_location),
+                fontSize = 12.sp,
+                color = Color(0xFF6B7280),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = Color(0xFFF9FAFB),
@@ -990,11 +1018,31 @@ private fun IncidentLocationCard(
                 IncidentMap(
                     modifier = Modifier.fillMaxSize(),
                     incidents = listOf(incident),
-                    isLocationSelectionEnabled = false,
+                    isLocationSelectionEnabled = true, // Always enabled
                     allowDetailNavigation = false,
                     onMapTouch = { isTouchingMap ->
                         onParentScrollEnabledChange(!isTouchingMap)
-                    }
+                    },
+                    onLocationSelected = onLocationSelected
+                )
+            }
+
+            // Always show the save button
+            Button(
+                onClick = onSaveLocation,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF0D47A1)
+                )
+            ) {
+                Text(
+                    text = "Save Location Changes",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
                 )
             }
         }

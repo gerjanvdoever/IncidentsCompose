@@ -53,6 +53,7 @@ fun MyIncidentDetailScreen(
     var incident by remember { mutableStateOf<IncidentResponse?>(null) }
     var selectedCategory by remember { mutableStateOf<IncidentCategory?>(null) }
     var editableDescription by remember { mutableStateOf("") }
+    var selectedLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
 
     var showResolvedDialog by remember { mutableStateOf(false) }
     var showCannotDeleteDialog by remember { mutableStateOf(false) }
@@ -71,6 +72,8 @@ fun MyIncidentDetailScreen(
             selectedIncident?.let {
                 selectedCategory = it.category
                 editableDescription = it.description
+                // Initialize selected location with current incident location
+                selectedLocation = it.latitude to it.longitude
             }
         }
     }
@@ -309,8 +312,10 @@ fun MyIncidentDetailScreen(
                     incident = incident!!,
                     selectedCategory = selectedCategory,
                     editableDescription = editableDescription,
+                    selectedLocation = selectedLocation, // Pass the location
                     onCategoryChange = { selectedCategory = it },
                     onDescriptionChange = { editableDescription = it },
+                    onLocationSelected = { lat, lon -> selectedLocation = lat to lon }, // Handle location selection
                     onSave = {
                         incident?.let { inc ->
                             if (inc.status == Status.RESOLVED) {
@@ -319,7 +324,9 @@ fun MyIncidentDetailScreen(
                                 viewModel.updateIncident(
                                     incidentId = inc.id,
                                     category = selectedCategory,
-                                    description = editableDescription.takeIf { it.isNotBlank() }
+                                    description = editableDescription.takeIf { it.isNotBlank() },
+                                    latitude = selectedLocation?.first, // Pass latitude
+                                    longitude = selectedLocation?.second // Pass longitude
                                 )
                             }
                         }
@@ -347,8 +354,10 @@ private fun IncidentDetailContent(
     incident: IncidentResponse,
     selectedCategory: IncidentCategory?,
     editableDescription: String,
+    selectedLocation: Pair<Double, Double>?, // Add location parameter
     onCategoryChange: (IncidentCategory) -> Unit,
     onDescriptionChange: (String) -> Unit,
+    onLocationSelected: (Double, Double) -> Unit, // Add location callback
     onSave: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -371,9 +380,11 @@ private fun IncidentDetailContent(
             onDescriptionChange = onDescriptionChange
         )
         IncidentImagesCard(incident)
-        IncidentLocationCard(incident,
-            parentScrollEnabled = parentScrollEnabled,
-            onParentScrollEnabledChange = { parentScrollEnabled = it })
+        IncidentLocationCard(
+            incident = incident,
+            onParentScrollEnabledChange = { parentScrollEnabled = it },
+            onLocationSelected = onLocationSelected
+        )
 
         ActionButtons(
             onSave = onSave,
@@ -780,8 +791,9 @@ private fun IncidentImagesCard(incident: IncidentResponse) {
 @Composable
 private fun IncidentLocationCard(
     incident: IncidentResponse,
-    parentScrollEnabled: Boolean,
-    onParentScrollEnabledChange: (Boolean) -> Unit) {
+    onParentScrollEnabledChange: (Boolean) -> Unit,
+    onLocationSelected: (Double, Double) -> Unit // Add this parameter
+) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -797,7 +809,7 @@ private fun IncidentLocationCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -818,6 +830,13 @@ private fun IncidentLocationCard(
                 )
             }
 
+            Text(
+                text = stringResource(R.string.tap_on_the_map_to_select_a_new_location),
+                fontSize = 12.sp,
+                color = Color(0xFF6B7280),
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = Color(0xFFF9FAFB),
@@ -828,9 +847,10 @@ private fun IncidentLocationCard(
                 IncidentMap(
                     modifier = Modifier.fillMaxSize(),
                     incidents = listOf(incident),
-                    isLocationSelectionEnabled = false,
+                    isLocationSelectionEnabled = true,
                     allowDetailNavigation = false,
-                    onMapTouch = { isTouchingMap -> onParentScrollEnabledChange(!isTouchingMap) }
+                    onMapTouch = { isTouchingMap -> onParentScrollEnabledChange(!isTouchingMap) },
+                    onLocationSelected = onLocationSelected
                 )
             }
         }
