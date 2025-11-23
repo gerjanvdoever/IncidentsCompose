@@ -120,5 +120,5 @@
     <string name="go_to_details">Ga naar details</string>
     <string name="location_permission_is_required_to_show_the_map">Toestemming voor locatie is nodig om de kaart te laten zien</string>
     <string name="grant_permission">Geef toestemming</string>
-    <string name="tap_on_the_map_to_select_a_new_location">Tap on the map to select a new location</string>
+    <string name="tap_on_the_map_to_select_a_new_location">Selecteer een nieuwe locatie.</string>
 </resources>
